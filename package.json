@@ -1,0 +1,25 @@
+{
+  "name": "groupmg-commerce",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @groupmg/web dev",
+    "dev:api": "pnpm --filter @groupmg/api dev",
+    "dev:worker": "pnpm --filter @groupmg/worker-erp dev",
+    "build": "pnpm -r --if-present run build",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d postgres redis rabbitmq",
+    "infra:down": "docker compose down"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "typescript": "~5.9.3",
+    "@types/node": "^24.0.0"
+  },
+  "packageManager": "pnpm@12.5.1"
+}

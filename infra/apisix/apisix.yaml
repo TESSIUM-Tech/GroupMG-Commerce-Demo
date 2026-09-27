@@ -1,0 +1,15 @@
+routes:
+  - id: api
+    uri: /api/*
+    priority: 10
+    upstream:
+      type: roundrobin
+      nodes:
+        "api:3001": 1
+  - id: web
+    uri: /*
+    upstream:
+      type: roundrobin
+      nodes:
+        "web:3000": 1
+#END
