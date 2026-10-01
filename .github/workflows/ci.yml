@@ -5,6 +5,21 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://commerce:ci-demo-only@127.0.0.1:5432/commerce_issue2_test?schema=public
+      ALLOW_DEMO_SEED: "true"
+      ALLOW_DB_TESTS: "true"
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_USER: commerce
+          POSTGRES_PASSWORD: ci-demo-only
+          POSTGRES_DB: commerce_issue2_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U commerce -d commerce_issue2_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -16,4 +31,6 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run typecheck
       - run: pnpm run build
+      - run: pnpm run db:migrate
+      - run: pnpm run test:db
       - run: docker compose --env-file .env.example --profile app config --quiet
