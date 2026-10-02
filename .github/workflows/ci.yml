@@ -32,5 +32,5 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm run build
       - run: pnpm run db:migrate
-      - run: pnpm run test:db
+      - run: pnpm run test
       - run: docker compose --env-file .env.example --profile app config --quiet

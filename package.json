@@ -19,7 +19,9 @@
     "db:migrate": "pnpm --filter @groupmg/api run db:migrate",
     "db:seed": "pnpm --filter @groupmg/api run db:seed",
     "db:status": "pnpm --filter @groupmg/api run db:status",
-    "test:db": "pnpm --filter @groupmg/api run test:db"
+    "test:db": "pnpm --filter @groupmg/api run test:db",
+    "test:api": "pnpm --filter @groupmg/api run test:api",
+    "test": "pnpm --filter @groupmg/api run test"
   },
   "devDependencies": {
     "prettier": "3.9.9",
