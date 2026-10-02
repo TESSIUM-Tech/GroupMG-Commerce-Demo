@@ -15,8 +15,12 @@ watch; en otra terminal usar `node --watch apps/api/dist/main.js` o
 `node --watch apps/worker-erp/dist/main.js` después del primer build.
 El worker permanece vivo sin consumir mensajes, hacer cron ni llamar al ERP.
 
-Health web: `/health`. Health API: `/api/v1/health`. Ambos son liveness;
-un 200 no certifica conexión con PostgreSQL, Redis, RabbitMQ o proveedores.
+Health web: `/health` (liveness). Health API: `/api/v1/health` o `/api/v1/health/liveness`
+(liveness); `/api/v1/health/readiness` (readiness de PostgreSQL; devuelve 200 si la base
+está conectada o 503 Service Unavailable si no responde).
+Trazabilidad con `x-correlation-id` en cabeceras, respuestas y logs estructurados.
+Validación de DTOs en runtime con rechazo de campos no permitidos en `/api/v1/health/validate`.
+Detalle completo en [api-base.md](api-base.md).
 No hay rutas de pedidos/pagos que simulen éxito.
 
 ## Contenedores
@@ -31,7 +35,7 @@ Detener: `docker compose --profile app down`; conserva volúmenes.
 Cambiar las variables de contraseña no rota credenciales de volúmenes ya creados.
 
 Las imágenes usan tags de versión, no digest; fijar digest cuando se valide la
-plataforma de despliegue. La API espera PostgreSQL saludable y conecta al iniciar; los demás clientes siguen pendientes. Readiness HTTP se implementa en #3.
+plataforma de despliegue. La API espera PostgreSQL saludable y conecta al iniciar; los demás clientes siguen pendientes. Readiness HTTP implementado en #3 (`/api/v1/health/readiness`).
 
 ## Revisión del init
 

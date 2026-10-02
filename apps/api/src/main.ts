@@ -3,14 +3,38 @@ import { resolve } from "node:path";
 import { config } from "dotenv";
 config({ path: resolve(__dirname, "../../../.env"), quiet: true });
 import { NestFactory } from "@nestjs/core";
+import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
+import { validateEnv } from "./config/env.config";
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
 
 async function bootstrap() {
+  const appConfig = validateEnv(process.env);
+
   const app = await NestFactory.create(AppModule, { rawBody: true });
-  app.setGlobalPrefix("api/v1");
+
+  app.setGlobalPrefix(appConfig.globalPrefix);
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      stopAtFirstError: false,
+      validationError: {
+        target: false,
+        value: false,
+      },
+    }),
+  );
+
+  app.useGlobalFilters(new HttpExceptionFilter());
+
   app.enableShutdownHooks();
-  await app.listen(Number(process.env.PORT ?? 3001), "0.0.0.0");
+
+  await app.listen(appConfig.port, "0.0.0.0");
 }
+
 void bootstrap().catch(() => {
   console.error(
     "API startup failed. Check configuration and database connectivity; credentials are not logged.",

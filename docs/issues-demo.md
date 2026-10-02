@@ -113,11 +113,13 @@ Issue publicado: [#3](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Validar la configuración al arrancar sin imprimir secretos y conectar el repositorio PostgreSQL.
-- [ ] Validar DTO en runtime, rechazar campos no permitidos y responder errores consistentes sin stacks internos.
-- [ ] Añadir correlationId a respuestas/logs y documentar los endpoints iniciales.
-- [ ] Mantener liveness y agregar readiness de PostgreSQL con respuesta no exitosa cuando no esté disponible.
-- [ ] Comprobar entrada inválida y caída de base de datos con pruebas de integración.
+- [x] Validar la configuración al arrancar sin imprimir secretos y conectar el repositorio PostgreSQL.
+- [x] Validar DTO en runtime, rechazar campos no permitidos y responder errores consistentes sin stacks internos.
+- [x] Añadir correlationId a respuestas/logs y documentar los endpoints iniciales.
+- [x] Mantener liveness y agregar readiness de PostgreSQL con respuesta no exitosa cuando no esté disponible.
+- [x] Comprobar entrada inválida y caída de base de datos con pruebas de integración.
+
+Evidencia local: [api-base](api-base.md), validación de variables de entorno al arranque sin imprimir credenciales, repositorio PostgreSQL `CatalogRepository` conectado, trazabilidad con `x-correlation-id` en cabeceras/cuerpo/logs estructurados, liveness y readiness de PostgreSQL con 503 controlado sin fuga de stacks, validación DTO en runtime con rechazo estricto de campos no permitidos y formato uniforme de errores HTTP. 14 pruebas de integración de API aprobadas (20 pruebas totales en monorepo) y verificación en vivo a través del API Gateway APISIX en Docker.
 
 ### DEMO-04 — Diseñar las pantallas y estados del recorrido de compra
 
