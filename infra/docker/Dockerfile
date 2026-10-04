@@ -13,7 +13,7 @@ FROM base AS build
 RUN pnpm install --frozen-lockfile
 COPY . .
 ARG WORKSPACE
-RUN pnpm --filter=${WORKSPACE} run build
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build pnpm --filter=${WORKSPACE} run build
 ENV CI=true
 RUN pnpm install --prod --frozen-lockfile
 

@@ -1,16 +1,16 @@
 # Arquitectura inicial
 
 Estado: propuesta de base, derivada del diagrama de referencia. El código inicial
-solo incluye arranque de aplicaciones, liveness, vistas vacías y contratos.
+incluye arranque, liveness, vistas iniciales y contratos; DEMO-02 añade conexión de la API a PostgreSQL, migraciones y seed.
 
 ## Responsabilidades y límites
 
 | Componente | Responsabilidad                                       | Estado del init                          |
 | ---------- | ----------------------------------------------------- | ---------------------------------------- |
 | Next.js    | Renderizado del catálogo y experiencia de checkout    | Tres vistas iniciales                    |
-| NestJS API | Catálogo, identidad, pedidos y coordinación de pagos  | Módulos vacíos y liveness                |
+| NestJS API | Catálogo, identidad, pedidos y coordinación de pagos  | Módulos, liveness y Prisma               |
 | Worker ERP | Adaptar el ERP, importar inventario y exportar ventas | Arranque y puerto tipado                 |
-| PostgreSQL | Estado transaccional de comercio                      | Contenedor, sin tablas                   |
+| PostgreSQL | Estado transaccional de comercio                      | Esquema versionado y seed                |
 | Redis      | Caché y sesiones con TTL                              | Contenedor, sin clientes                 |
 | RabbitMQ   | Entrega asíncrona de eventos                          | Contenedor, sin topología                |
 | APISIX     | Entrada HTTP y enrutamiento                           | Configuración standalone                 |
@@ -27,9 +27,9 @@ y dependencias externas. No se crea un microservicio por cada entidad.
    la API internamente; el navegador utilizará rutas relativas del gateway.
 3. NestJS calcula precios e inventario y crea el pedido pendiente. Nunca confía
    en totales o estados de pago enviados por el navegador.
-4. NestJS inicia el pago con el proveedor. Next.js presenta la experiencia del proveedor.
-5. El proveedor entrega el webhook a NestJS a través de APISIX. La API conserva
-   el cuerpo original para verificar la firma, deduplica y confirma el pedido.
+4. NestJS crea la solicitud PayPhone API Sale. El cliente paga en PayPhone Personal.
+5. PayPhone notifica identificadores a través de APISIX. NestJS consulta el estado
+   con autenticación, valida IDs/importe/moneda, deduplica y confirma el pedido.
 6. La misma transacción de PostgreSQL guarda el cambio de pedido y un evento outbox.
 7. Un publicador confirma la entrega a RabbitMQ y marca el outbox. El worker
    registra la venta en el ERP y procesa mensajes de forma idempotente.
@@ -37,8 +37,8 @@ y dependencias externas. No se crea un microservicio por cada entidad.
    la proyección local e invalida cachés según una política definida.
 
 Decisión respecto de la imagen: pagos y webhooks pertenecen al backend. Evita
-repartir entre Next.js y NestJS las reglas de confirmación. Stripe/PayPal serán
-adaptadores intercambiables; todavía no se selecciona proveedor.
+repartir entre Next.js y NestJS las reglas de confirmación. PayPhone API Sale es
+la única pasarela elegida. Reglas y límites: [DEMO-01](demo-rules.md).
 
 ## Organización de código al implementar cada módulo
 
@@ -58,7 +58,7 @@ las interfaces TypeScript por sí solas no validan mensajes externos.
 El worker utilizará `ports/erp.port.ts` y adaptadores específicos del proveedor.
 Los códigos, formatos de fechas y errores del ERP se traducen en ese límite.
 
-## Datos propuestos (sin migraciones en este init)
+## Datos y persistencia
 
 | Entidad                  | Claves e invariantes previstas                                                 |
 | ------------------------ | ------------------------------------------------------------------------------ |
@@ -72,7 +72,7 @@ Los códigos, formatos de fechas y errores del ERP se traducen en ese límite.
 
 Importes en unidades monetarias menores, moneda explícita y cantidades positivas.
 La precisión monetaria depende de la moneda. Fechas UTC, IDs opacos y constraints
-en base de datos. La selección de ORM y migraciones queda para la primera entrega funcional.
+en base de datos. Prisma y migraciones implementados: [Persistencia](persistence.md).
 
 ERP es fuente de catálogo/inventario según contrato a confirmar; PostgreSQL es
 fuente del pedido y pago local. El worker deberá escribir proyecciones mediante

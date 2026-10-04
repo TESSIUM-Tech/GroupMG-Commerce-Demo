@@ -6,17 +6,16 @@ Monorepo TypeScript con storefront Next.js, API modular NestJS e integración ER
 asíncrona. Este repositorio define la estructura inicial de desarrollo, los límites
 entre componentes y la infraestructura local.
 
-> **Estado: init / scaffold.** Las aplicaciones arrancan y la web tiene vistas
+> **Estado: scaffold + persistencia DEMO-02.** La API conecta PostgreSQL; hay migraciones y seed. La web tiene vistas
 > iniciales. El catálogo real, la autenticación, los pedidos, los pagos y la
 > sincronización ERP todavía no están implementados.
 
-[Arquitectura detallada](docs/architecture.md) · [Guía de desarrollo](docs/development.md) · [Roadmap](docs/roadmap.md)
+[Arquitectura detallada](docs/architecture.md) · [Guía de desarrollo](docs/development.md) · [Roadmap](docs/roadmap.md) · [Reglas de la demo](docs/demo-rules.md)
 
 ## Arquitectura
 
 Las líneas continuas representan rutas configuradas en el gateway. Las líneas
-punteadas muestran integraciones previstas, aún sin implementar. Los contenedores
-de datos existen, pero las aplicaciones todavía no se conectan a ellos.
+punteadas muestran integraciones previstas, aún sin implementar. PostgreSQL ya está conectado a la API; las demás integraciones siguen pendientes.
 
 ```mermaid
 flowchart LR
@@ -40,7 +39,7 @@ flowchart LR
         rabbit["RabbitMQ"]
     end
     subgraph external ["Servicios externos"]
-        payments["Stripe / PayPal · por definir"]
+        payments["PayPhone API Sale · pruebas"]
         erp["ERP · inventario y ventas"]
     end
 
@@ -49,10 +48,10 @@ flowchart LR
     apisix -->|/api/*| api
     coraza -.->|Filtro integrado previsto| apisix
     web -.->|Consulta de catálogo| api
-    api -.->|Pedidos y outbox| postgres
+    api -->|Conexión Prisma; esquema de pedidos/outbox| postgres
     api -.->|Caché y sesiones| redis
     api -.->|Iniciar pago| payments
-    payments -.->|Webhook vía gateway| apisix
+    payments -.->|Notificación vía gateway| apisix
     api -.->|Evento confirmado vía outbox| rabbit
     rabbit -.->|Consumo idempotente| worker
     worker -.->|Inventario y registro de ventas| erp
@@ -84,10 +83,12 @@ sequenceDiagram
 
     Cliente->>Web: Iniciar compra
     Web->>API: Solicitar checkout
-    API->>Pasarela: Crear sesión de pago
-    Pasarela-->>Web: Presentar checkout del proveedor
-    Pasarela->>API: Webhook mediante APISIX
-    API->>API: Verificar firma y deduplicar evento
+    API->>Pasarela: Crear solicitud API Sale
+    Pasarela-->>Cliente: Solicitar pago en PayPhone Personal
+    Pasarela->>API: Notificar IDs mediante APISIX
+    API->>Pasarela: Consultar estado con autenticación
+    Pasarela-->>API: Estado, importe e identificadores verificados
+    API->>API: Validar relación y deduplicar
     API->>PostgreSQL: Confirmar pedido y guardar outbox
     API-->>Pasarela: Confirmar recepción persistida
     PublicadorOutbox->>PostgreSQL: Leer eventos pendientes
@@ -112,11 +113,11 @@ cola de errores y reconciliación están descritos en la [arquitectura](docs/arc
 | Worker       | NestJS 11                 | Arranque independiente y puerto tipado para ERP             |
 | Contratos    | TypeScript                | Propuesta de evento `order.confirmed.v1`                    |
 | Gateway      | Apache APISIX             | Rutas web/API en modo standalone                            |
-| Persistencia | PostgreSQL 17             | Contenedor con volumen; sin tablas ni migraciones           |
+| Persistencia | PostgreSQL 17             | Prisma, migraciones, seed y volumen persistente             |
 | Caché        | Redis 7.4                 | Contenedor con volumen; sin cliente de aplicación           |
 | Mensajería   | RabbitMQ 4.1              | Broker y consola; sin exchanges ni consumidores propios     |
 | WAF          | Coraza / OWASP CRS        | Plan de integración, pendiente de habilitar                 |
-| Calidad      | GitHub Actions / Prettier | Formato, tipos, build y validación de Compose               |
+| Calidad      | GitHub Actions / Prettier | Formato, tipos, build, Compose y pruebas PostgreSQL         |
 
 ## Estructura del repositorio
 
@@ -294,14 +295,14 @@ docker compose --env-file .env.example --profile app config --quiet
 
 La [CI](.github/workflows/ci.yml) ejecuta estas comprobaciones con el lockfile
 congelado. Validar Compose comprueba su configuración; no prueba el tráfico
-completo entre contenedores. Las pruebas de dominio e integración se añadirán
-con las primeras funcionalidades.
+completo entre contenedores. Las pruebas de persistencia de DEMO-02 usan PostgreSQL real; pruebas comerciales y de ERP se añadirán en sus issues.
 
 ## Próximas etapas
 
-- [ ] Persistencia, migraciones y catálogo conectado de extremo a extremo.
+- [x] Persistencia PostgreSQL, migraciones y seed reproducible.
+- [ ] Catálogo conectado de extremo a extremo.
 - [ ] Autenticación, carrito, pedidos y política de reservas de inventario.
-- [ ] Checkout real y webhooks firmados con idempotencia.
+- [ ] Checkout PayPhone de prueba y confirmación verificada con idempotencia.
 - [ ] Outbox, topología RabbitMQ, reintentos y cola de errores.
 - [ ] Adaptador ERP e importación de inventario con checkpoints.
 - [ ] TLS, Coraza/CRS, observabilidad y recuperación de backups.
@@ -310,3 +311,8 @@ con las primeras funcionalidades.
 Los criterios de aceptación y las decisiones pendientes se detallan en el
 [roadmap](docs/roadmap.md). El primer incremento recomendado es
 **PostgreSQL → catálogo en NestJS → listado en Next.js**.
+
+## Persistencia DEMO-02
+
+PostgreSQL y Prisma: [migraciones, seed, estados y pruebas](docs/persistence.md).
+Aplicar migraciones antes de arrancar la API. El esquema no implementa aún checkout ni pagos.

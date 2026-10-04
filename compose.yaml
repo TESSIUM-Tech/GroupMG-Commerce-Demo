@@ -23,7 +23,11 @@ services:
       args: { WORKSPACE: "@groupmg/api" }
     profiles: [app]
     networks: [edge, data]
-    environment: { PORT: "3001" }
+    environment:
+      PORT: "3001"
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
+    depends_on:
+      postgres: { condition: service_healthy }
   worker-erp:
     build:
       context: .
@@ -39,7 +43,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?Configurar POSTGRES_DB}
     ports: ["127.0.0.1:5432:5432"]
     volumes: ["postgres-data:/var/lib/postgresql/data"]
-    networks: [data]
+    networks: [data, local-db]
     healthcheck:
       test:
         [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
@@ -75,6 +79,7 @@ networks:
   data:
     internal: true
   integration:
+  local-db:
 volumes:
   postgres-data:
   redis-data:
