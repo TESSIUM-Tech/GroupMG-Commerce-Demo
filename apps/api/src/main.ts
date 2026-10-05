@@ -7,6 +7,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { validateEnv } from "./config/env.config";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { setupSwagger } from "./documentation/swagger";
 
 async function bootstrap() {
   const appConfig = validateEnv(process.env);
@@ -29,6 +30,7 @@ async function bootstrap() {
   );
 
   app.useGlobalFilters(new HttpExceptionFilter());
+  setupSwagger(app);
 
   app.enableShutdownHooks();
 

@@ -1,6 +1,7 @@
 const { test, describe, before, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { resolve } = require("node:path");
+const { execFileSync } = require("node:child_process");
 require("dotenv").config({
   path: resolve(__dirname, "../../../.env"),
   quiet: true,
@@ -104,6 +105,11 @@ describe("API Base Endpoints & HTTP Error Handling", () => {
   let catalogRepository;
 
   before(async () => {
+    // This suite must also work on a newly migrated database, regardless of file order.
+    execFileSync(process.execPath, [resolve(__dirname, "../prisma/seed.cjs")], {
+      env: { ...process.env, ALLOW_DEMO_SEED: "true" },
+      stdio: "pipe",
+    });
     app = await NestFactory.create(AppModule, {
       logger: false,
       abortOnError: false,

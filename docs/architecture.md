@@ -1,20 +1,22 @@
 # Arquitectura inicial
 
-Estado: propuesta de base, derivada del diagrama de referencia. El código inicial
-incluye arranque, liveness, vistas iniciales y contratos; DEMO-02 añade conexión de la API a PostgreSQL, migraciones y seed.
+Estado: base derivada del diagrama de referencia. Incluye arranque, liveness,
+readiness, vistas iniciales y contratos; DEMO-02 añade PostgreSQL, migraciones y
+seed. El módulo de catálogo incorpora listado paginado, búsqueda, categoría y
+detalle con disponibilidad. Contrato y pruebas: [API de catálogo](catalog-api.md).
 
 ## Responsabilidades y límites
 
-| Componente | Responsabilidad                                       | Estado del init                          |
-| ---------- | ----------------------------------------------------- | ---------------------------------------- |
-| Next.js    | Renderizado del catálogo y experiencia de checkout    | Tres vistas iniciales                    |
-| NestJS API | Catálogo, identidad, pedidos y coordinación de pagos  | Módulos, liveness y Prisma               |
-| Worker ERP | Adaptar el ERP, importar inventario y exportar ventas | Arranque y puerto tipado                 |
-| PostgreSQL | Estado transaccional de comercio                      | Esquema versionado y seed                |
-| Redis      | Caché y sesiones con TTL                              | Contenedor, sin clientes                 |
-| RabbitMQ   | Entrega asíncrona de eventos                          | Contenedor, sin topología                |
-| APISIX     | Entrada HTTP y enrutamiento                           | Configuración standalone                 |
-| Coraza     | Inspección WAF con OWASP CRS                          | Pendiente de artefacto WASM y validación |
+| Componente | Responsabilidad                                       | Estado del init                                                            |
+| ---------- | ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| Next.js    | Renderizado del catálogo y experiencia de checkout    | Tres vistas iniciales                                                      |
+| NestJS API | Catálogo, identidad, pedidos y coordinación de pagos  | Catálogo de lectura, liveness/readiness y Prisma; demás módulos pendientes |
+| Worker ERP | Adaptar el ERP, importar inventario y exportar ventas | Arranque y puerto tipado                                                   |
+| PostgreSQL | Estado transaccional de comercio                      | Esquema versionado y seed                                                  |
+| Redis      | Caché y sesiones con TTL                              | Contenedor, sin clientes                                                   |
+| RabbitMQ   | Entrega asíncrona de eventos                          | Contenedor, sin topología                                                  |
+| APISIX     | Entrada HTTP y enrutamiento                           | Configuración standalone                                                   |
+| Coraza     | Inspección WAF con OWASP CRS                          | Pendiente de artefacto WASM y validación                                   |
 
 Monorepo con pnpm workspaces y TypeScript. La API es un monolito modular;
 el worker tiene ciclo de vida independiente por la naturaleza de sus reintentos
