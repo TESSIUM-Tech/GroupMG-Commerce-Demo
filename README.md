@@ -7,10 +7,12 @@ asíncrona. Este repositorio define la estructura inicial de desarrollo, los lí
 entre componentes y la infraestructura local.
 
 > **Estado: scaffold + persistencia DEMO-02.** La API conecta PostgreSQL; hay migraciones y seed. La web tiene vistas
-> iniciales. El catálogo real, la autenticación, los pedidos, los pagos y la
+> iniciales. La API de catálogo consulta productos publicados e inventario disponible en PostgreSQL. La autenticación, los pedidos, los pagos y la
 > sincronización ERP todavía no están implementados.
 
 [Arquitectura detallada](docs/architecture.md) · [Guía de desarrollo](docs/development.md) · [Roadmap](docs/roadmap.md) · [Reglas de la demo](docs/demo-rules.md)
+
+[API de catálogo: contrato y pruebas](docs/catalog-api.md).
 
 ## Arquitectura
 
@@ -105,19 +107,19 @@ cola de errores y reconciliación están descritos en la [arquitectura](docs/arc
 
 ## Stack y estado actual
 
-| Área         | Tecnología                | Incluido en el init                                         |
-| ------------ | ------------------------- | ----------------------------------------------------------- |
-| Monorepo     | pnpm 12.5.1 / TypeScript  | Workspaces, lockfile y configuración común                  |
-| Web          | Next.js 16 / React 19     | Inicio, catálogo y checkout con estados vacíos              |
-| Backend      | NestJS 11                 | Módulos vacíos de catálogo, auth, pedidos y pagos; liveness |
-| Worker       | NestJS 11                 | Arranque independiente y puerto tipado para ERP             |
-| Contratos    | TypeScript                | Propuesta de evento `order.confirmed.v1`                    |
-| Gateway      | Apache APISIX             | Rutas web/API en modo standalone                            |
-| Persistencia | PostgreSQL 17             | Prisma, migraciones, seed y volumen persistente             |
-| Caché        | Redis 7.4                 | Contenedor con volumen; sin cliente de aplicación           |
-| Mensajería   | RabbitMQ 4.1              | Broker y consola; sin exchanges ni consumidores propios     |
-| WAF          | Coraza / OWASP CRS        | Plan de integración, pendiente de habilitar                 |
-| Calidad      | GitHub Actions / Prettier | Formato, tipos, build, Compose y pruebas PostgreSQL         |
+| Área         | Tecnología                | Incluido en el init                                                                |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------------- |
+| Monorepo     | pnpm 12.5.1 / TypeScript  | Workspaces, lockfile y configuración común                                         |
+| Web          | Next.js 16 / React 19     | Inicio, catálogo y checkout con estados vacíos                                     |
+| Backend      | NestJS 11                 | API de catálogo e inventario; auth, pedidos y pagos pendientes; liveness/readiness |
+| Worker       | NestJS 11                 | Arranque independiente y puerto tipado para ERP                                    |
+| Contratos    | TypeScript                | Propuesta de evento `order.confirmed.v1`                                           |
+| Gateway      | Apache APISIX             | Rutas web/API en modo standalone                                                   |
+| Persistencia | PostgreSQL 17             | Prisma, migraciones, seed y volumen persistente                                    |
+| Caché        | Redis 7.4                 | Contenedor con volumen; sin cliente de aplicación                                  |
+| Mensajería   | RabbitMQ 4.1              | Broker y consola; sin exchanges ni consumidores propios                            |
+| WAF          | Coraza / OWASP CRS        | Plan de integración, pendiente de habilitar                                        |
+| Calidad      | GitHub Actions / Prettier | Formato, tipos, build, Compose y pruebas PostgreSQL                                |
 
 ## Estructura del repositorio
 
@@ -315,4 +317,6 @@ Los criterios de aceptación y las decisiones pendientes se detallan en el
 ## Persistencia DEMO-02
 
 PostgreSQL y Prisma: [migraciones, seed, estados y pruebas](docs/persistence.md).
+
+Swagger: [documentación de endpoints y guía de pruebas](docs/swagger.md). Con la API iniciada, abre http://localhost:3001/api/docs.
 Aplicar migraciones antes de arrancar la API. El esquema no implementa aún checkout ni pagos.

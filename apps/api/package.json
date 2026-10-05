@@ -13,12 +13,16 @@
     "db:status": "prisma migrate status",
     "test:db": "node --test test/persistence.test.cjs",
     "test:api": "node --test test/api-base.test.cjs",
-    "test": "node --test test/persistence.test.cjs test/api-base.test.cjs"
+    "test:catalog:unit": "node --test test/catalog-unit.test.cjs test/catalog-http.test.cjs",
+    "test:catalog": "node --test test/catalog.test.cjs",
+    "test:swagger": "node --test test/swagger.test.cjs",
+    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
     "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.4.7",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "class-transformer": "^0.5.1",
