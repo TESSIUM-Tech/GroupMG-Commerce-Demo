@@ -1,0 +1,12 @@
+.price {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.note {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-muted);
+}

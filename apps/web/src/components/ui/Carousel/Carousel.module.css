@@ -1,0 +1,93 @@
+.carousel {
+  min-width: 0;
+}
+.viewport {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 26px 0 38px;
+  perspective: 1400px;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+}
+.viewport:active {
+  cursor: grabbing;
+}
+.slide {
+  grid-area: 1 / 1;
+  width: var(--slide-width);
+  min-width: 0;
+  transform-style: preserve-3d;
+  transform-origin: center;
+  border-radius: 18px;
+  box-shadow: 0 18px 32px color-mix(in srgb, var(--color-dark) 22%, transparent);
+}
+.slide img {
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  padding: 6px 0 14px;
+}
+.controls > button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-dark);
+  font-size: 20px;
+}
+.controls > button:disabled {
+  background: var(--color-border);
+  color: var(--color-muted);
+  cursor: default;
+}
+.pagination {
+  display: flex;
+  gap: 6px;
+}
+.pagination button {
+  width: 32px;
+  height: 44px;
+  background: transparent;
+  position: relative;
+}
+.pagination button::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  top: 18px;
+  left: 12px;
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+.pagination button[aria-current="true"]::after {
+  background: var(--color-primary);
+  width: 22px;
+  left: 5px;
+  border-radius: 8px;
+}
+.status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+@media (max-width: 700px) {
+  .slide {
+    width: 86%;
+  }
+  .viewport {
+    padding-block: 18px 26px;
+    perspective: 900px;
+  }
+}
