@@ -3,6 +3,7 @@ import type { Product } from "../../../types/product";
 export const products: Product[] = [
   {
     sku: "MG-DEMO-001",
+    stock: 20,
     name: "Nova X1 · 128 GB",
     category: "celulares",
     priceMinor: 19900,
@@ -11,6 +12,7 @@ export const products: Product[] = [
   },
   {
     sku: "MG-DEMO-002",
+    stock: 15,
     name: "Nova X2 · 256 GB",
     category: "celulares",
     priceMinor: 29900,
@@ -19,6 +21,7 @@ export const products: Product[] = [
   },
   {
     sku: "MG-DEMO-003",
+    stock: 30,
     name: "Orbit Lite · 64 GB",
     category: "celulares",
     priceMinor: 12900,
@@ -27,6 +30,7 @@ export const products: Product[] = [
   },
   {
     sku: "MG-DEMO-007",
+    stock: 8,
     name: "Audífonos Pulse",
     category: "audio",
     priceMinor: 2490,
@@ -35,6 +39,7 @@ export const products: Product[] = [
   },
   {
     sku: "MG-DEMO-008",
+    stock: 10,
     name: "Parlante Beat",
     category: "audio",
     priceMinor: 3590,
@@ -43,10 +48,20 @@ export const products: Product[] = [
   },
   {
     sku: "MG-DEMO-005",
+    stock: 12,
     name: "Cargador USB-C · 25 W",
     category: "accesorios",
     priceMinor: 1500,
     imageUrl: "/images/charger.svg",
     description: "Energía para seguir conectado.",
+  },
+  {
+    sku: "MG-DEMO-012",
+    stock: 0,
+    name: "Power bank Volt · 10000 mAh",
+    category: "accesorios",
+    priceMinor: 2590,
+    imageUrl: "/demo/products/MG-DEMO-012.svg",
+    description: "Energía para tus próximas aventuras.",
   },
 ];

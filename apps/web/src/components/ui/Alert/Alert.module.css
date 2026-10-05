@@ -1,0 +1,40 @@
+.alert {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.info {
+  color: var(--color-info);
+  background: var(--color-info-background);
+}
+.success {
+  color: var(--color-primary);
+  background: var(--color-accent);
+}
+.warning {
+  color: var(--color-warning);
+  background: var(--color-warning-background);
+}
+.error {
+  color: var(--color-error);
+  background: var(--color-error-background);
+}
+.icon {
+  flex-shrink: 0;
+  font-weight: 700;
+}
+.content {
+  min-width: 0;
+}
+.content > strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.action {
+  margin-top: 10px;
+}

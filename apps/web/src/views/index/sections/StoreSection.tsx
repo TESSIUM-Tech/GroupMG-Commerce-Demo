@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ProductCard } from "../../../components/product/ProductCard/ProductCard";
 import { products } from "../data/products";
 import styles from "./ProductsSections.module.css";
+import { Select } from "../../../components/ui/Select/Select";
 const categories = [
   { value: "todos", label: "Todo" },
   { value: "celulares", label: "Celulares" },
@@ -48,17 +49,15 @@ export function StoreSection() {
               </button>
             ))}
           </div>
-          <label className={styles.sort}>
-            Ordenar por{" "}
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value)}
-            >
-              <option value="featured">Destacados</option>
-              <option value="price-low">Menor precio</option>
-              <option value="price-high">Mayor precio</option>
-            </select>
-          </label>
+          <Select
+            label="Ordenar por"
+            value={sort}
+            onChange={(event) => setSort(event.target.value)}
+          >
+            <option value="featured">Destacados</option>
+            <option value="price-low">Menor precio</option>
+            <option value="price-high">Mayor precio</option>
+          </Select>
         </div>
         <p className={styles.count} aria-live="polite">
           {visibleProducts.length} productos · Colección demo

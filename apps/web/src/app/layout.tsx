@@ -21,7 +21,9 @@ export default function RootLayout({
           Saltar al contenido
         </a>
         <Header />
-        <main id="contenido">{children}</main>
+        <main id="contenido" tabIndex={-1}>
+          {children}
+        </main>
         <Footer />
       </body>
     </html>

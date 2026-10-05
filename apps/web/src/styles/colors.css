@@ -1,9 +1,16 @@
 :root {
+  --color-error: #982c2c;
+  --color-error-background: #fff0f0;
+  --color-warning: #765015;
+  --color-warning-background: #fff6df;
+  --color-info: #245573;
+  --color-info-background: #edf5fa;
   --color-background: #f7f8f4;
   --color-surface: #ffffff;
   --color-store: #edf1ed;
   --color-ink: #182b25;
-  --color-muted: #68756d;
+  --color-muted: #56635b;
+  --color-control-border: #7a877e;
   --color-primary: #286453;
   --color-primary-hover: #1c4c3e;
   --color-accent: #dfeee6;

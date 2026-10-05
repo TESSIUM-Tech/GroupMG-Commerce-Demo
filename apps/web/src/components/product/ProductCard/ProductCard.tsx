@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "../../../types/product";
-import { formatPrice } from "../../../utils/format-price";
+import { Price } from "../../ui/Price/Price";
 import styles from "./ProductCard.module.css";
 export function ProductCard({ product }: { product: Product }) {
   return (
@@ -11,6 +11,7 @@ export function ProductCard({ product }: { product: Product }) {
         aria-label={`Ver ${product.name}`}
         className={styles.link}
       >
+        {product.stock === 0 && <span className={styles.stock}>Agotado</span>}
         <div className={styles.image}>
           <Image
             src={product.imageUrl}
@@ -22,7 +23,9 @@ export function ProductCard({ product }: { product: Product }) {
         <div className={styles.content}>
           <span className={styles.category}>{product.category}</span>
           <h3>{product.name}</h3>
-          <p className={styles.price}>{formatPrice(product.priceMinor)}</p>
+          <p className={styles.price}>
+            <Price amountMinor={product.priceMinor} />
+          </p>
           <p className={styles.description}>{product.description}</p>
           <span className={styles.tax}>Precio base · IVA no incluido</span>
         </div>

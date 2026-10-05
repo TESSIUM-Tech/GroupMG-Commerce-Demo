@@ -1,35 +1,48 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { readCart, saveCart, type CartItem } from "../../services/cart-storage";
 import { products } from "../index/data/products";
 import { CartProduct } from "./sections/CartProduct";
 import { CartSummary } from "./sections/CartSummary";
 import styles from "./CartView.module.css";
+import { Alert } from "../../components/ui/Alert/Alert";
+import { Button } from "../../components/ui/Button/Button";
+import { StatePanel } from "../../components/ui/StatePanel/StatePanel";
 
 export function CartView() {
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const [pending, setPending] = useState<CartItem[] | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     try {
+      setError("");
+      setLoadFailed(false);
       setItems(
         readCart().filter((item) =>
           products.some((product) => product.sku === item.sku),
         ),
       );
     } catch {
+      setLoadFailed(true);
       setError("No se pudo leer el carrito guardado en este navegador.");
     }
     setReady(true);
-  }, []);
+  }, [attempt]);
 
-  function update(next: CartItem[]) {
+  function update(next: CartItem[], returnFocus = false) {
     try {
       saveCart(next);
       setItems(next);
       setError("");
+      setPending(null);
+      if (returnFocus) titleRef.current?.focus();
     } catch {
+      setPending(next);
       setError("No se pudo guardar el cambio. Inténtalo de nuevo.");
     }
   }
@@ -57,18 +70,49 @@ export function CartView() {
   return (
     <div className={`container ${styles.page}`}>
       <p className="eyebrow">Tu selección</p>
-      <h1>Tu carrito</h1>
+      <h1 ref={titleRef} tabIndex={-1}>
+        Tu carrito
+      </h1>
       <p className={styles.subtitle}>
         {!ready
           ? "Cargando tu selección…"
           : `${count} ${count === 1 ? "producto listo" : "productos listos"} para acompañarte.`}
       </p>
       {error && (
-        <p className={styles.error} role="alert">
+        <Alert
+          variant="error"
+          title="No se pudo actualizar el carrito"
+          action={
+            <Button
+              onClick={() =>
+                pending ? update(pending) : setAttempt((value) => value + 1)
+              }
+            >
+              Reintentar
+            </Button>
+          }
+        >
           {error}
-        </p>
+        </Alert>
       )}
-      {ready && items.length === 0 ? (
+      {!ready && <StatePanel kind="loading" title="Cargando tu carrito" />}
+      {ready &&
+        !loadFailed &&
+        items.some((item) => {
+          const quantity = items
+            .filter((entry) => entry.sku === item.sku)
+            .reduce((sum, entry) => sum + entry.quantity, 0);
+          return (
+            quantity >
+            (products.find((product) => product.sku === item.sku)?.stock ?? 0)
+          );
+        }) && (
+          <Alert variant="warning" title="Revisa la disponibilidad">
+            Algunas cantidades superan el stock demo. Reduce las unidades o
+            elimina los productos agotados antes de continuar.
+          </Alert>
+        )}
+      {ready && !loadFailed && items.length === 0 ? (
         <div className={styles.empty}>
           <span aria-hidden="true">♧</span>
           <h2>Tu próximo favorito te espera</h2>
@@ -76,7 +120,8 @@ export function CartView() {
           <Link href="/#tienda">Explorar la tienda ↗</Link>
         </div>
       ) : (
-        ready && (
+        ready &&
+        !loadFailed && (
           <div className={styles.layout}>
             <div className={styles.list}>
               {items.map((item) => {
@@ -96,7 +141,10 @@ export function CartView() {
                       )
                     }
                     onRemove={() =>
-                      update(items.filter((entry) => entry !== item))
+                      update(
+                        items.filter((entry) => entry !== item),
+                        true,
+                      )
                     }
                   />
                 );

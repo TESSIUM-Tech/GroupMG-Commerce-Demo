@@ -5,6 +5,9 @@ import styles from "./HeroSection.module.css";
 export function HeroSection() {
   return (
     <section className="container" id="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title" className="sr-only">
+        Tecnología que va contigo
+      </h1>
       <Carousel label="Novedades de GroupMG" slideWidth="72%" initialIndex={1}>
         {heroSlides.map((slide, index) => (
           <div className={styles.hero} key={slide.id}>
@@ -23,19 +26,12 @@ export function HeroSection() {
               <div>
                 <span className={styles.label}>▣ GroupMG</span>
                 <p className={styles.overline}>{slide.eyebrow}</p>
-                {index === 0 ? (
-                  <h1 id="hero-title">
-                    {slide.title[0]}
-                    <br />
-                    {slide.title[1]}
-                  </h1>
-                ) : (
-                  <h2 className={styles.title}>
-                    {slide.title[0]}
-                    <br />
-                    {slide.title[1]}
-                  </h2>
-                )}
+
+                <h2 className={styles.title}>
+                  {slide.title[0]}
+                  <br />
+                  {slide.title[1]}
+                </h2>
               </div>
               <div className={styles.intro}>
                 <p>{slide.description}</p>

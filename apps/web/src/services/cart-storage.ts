@@ -1,3 +1,4 @@
+import { products } from "../views/index/data/products";
 export interface CartItem {
   sku: string;
   color: string;
@@ -9,7 +10,7 @@ export const CART_UPDATED_EVENT = "groupmg:cart-updated";
 export function readCart(): CartItem[] {
   const value: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
   if (!Array.isArray(value)) throw new Error("Invalid cart");
-  return value.filter(
+  const items = value.filter(
     (item): item is CartItem =>
       item &&
       typeof item.sku === "string" &&
@@ -18,6 +19,8 @@ export function readCart(): CartItem[] {
       item.quantity > 0 &&
       item.quantity <= 99,
   );
+  if (items.length !== value.length) throw new Error("Invalid cart items");
+  return items;
 }
 
 export function saveCart(items: CartItem[]) {
@@ -26,6 +29,12 @@ export function saveCart(items: CartItem[]) {
 }
 export function addCartItem(sku: string, color: string) {
   const items = readCart();
+  const product = products.find((item) => item.sku === sku);
+  const quantity = items
+    .filter((item) => item.sku === sku)
+    .reduce((sum, item) => sum + item.quantity, 0);
+  if (!product || quantity >= product.stock)
+    throw new Error("Demo stock unavailable");
   const existing = items.find(
     (item) => item.sku === sku && item.color === color,
   );

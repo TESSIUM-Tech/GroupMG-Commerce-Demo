@@ -7,6 +7,8 @@ import { formatPrice } from "../../../utils/format-price";
 import { products } from "../../index/data/products";
 import styles from "./ProductInformation.module.css";
 import { addCartItem } from "../../../services/cart-storage";
+import { Button } from "../../../components/ui/Button/Button";
+import { Alert } from "../../../components/ui/Alert/Alert";
 
 const colors = [
   { name: "Titanio", value: "#a1a69c" },
@@ -17,6 +19,7 @@ const colors = [
 export function ProductInformation({ product }: { product: Product }) {
   const [color, setColor] = useState("Titanio");
   const [message, setMessage] = useState("");
+  const [failed, setFailed] = useState(false);
   const taxMinor = Math.round((product.priceMinor * 1500) / 10000);
   const totalMinor = product.priceMinor + taxMinor;
   const phones = products.filter((item) => item.category === "celulares");
@@ -24,12 +27,14 @@ export function ProductInformation({ product }: { product: Product }) {
   function addToCart() {
     try {
       addCartItem(product.sku, color);
+      setFailed(false);
       setMessage(
         "Agregado al carrito local de demostración. El checkout aún no está conectado.",
       );
     } catch {
+      setFailed(true);
       setMessage(
-        "No se pudo guardar el carrito en este navegador. Inténtalo de nuevo.",
+        "No se pudo agregar el producto. Revisa las cantidades de tu carrito y el stock demo, o vuelve a intentarlo.",
       );
     }
   }
@@ -90,13 +95,29 @@ export function ProductInformation({ product }: { product: Product }) {
         </fieldset>
       </div>
       <p className={styles.demo}>
-        ● Producto demo · Disponibilidad por confirmar
+        {product.stock === 0
+          ? "● Agotado en el catálogo demo"
+          : `● ${product.stock} disponibles en el catálogo demo`}
       </p>
-      <button type="button" className={styles.add} onClick={addToCart}>
-        Agregar al carrito <span>{formatPrice(totalMinor)}</span>
-      </button>
+      {product.stock === 0 && (
+        <Alert
+          variant="warning"
+          title="Este producto está agotado"
+          action={<Link href="/catalogo">Buscar alternativas →</Link>}
+        >
+          Explora otros equipos de nuestra colección.
+        </Alert>
+      )}
+      <Button
+        className={styles.add}
+        onClick={addToCart}
+        disabled={product.stock === 0}
+      >
+        {product.stock === 0 ? "Producto agotado" : "Agregar al carrito"}{" "}
+        <span>{formatPrice(totalMinor)}</span>
+      </Button>
       <p className={styles.feedback} role="status">
-        {message}
+        {!failed && message}
         {message.startsWith("Agregado") && (
           <>
             {" "}
@@ -104,6 +125,19 @@ export function ProductInformation({ product }: { product: Product }) {
           </>
         )}
       </p>
+      {failed && (
+        <Alert
+          variant="error"
+          action={
+            <>
+              <Button onClick={addToCart}>Reintentar</Button>
+              <Link href="/carrito">Revisar carrito →</Link>
+            </>
+          }
+        >
+          {message}
+        </Alert>
+      )}
       <div className={styles.benefits}>
         <div>
           <span aria-hidden="true">♧</span>
