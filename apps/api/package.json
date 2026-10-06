@@ -4,31 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "tsc --watch",
-    "build": "prisma generate && tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "typecheck": "prisma generate && tsc --noEmit",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
-    "db:status": "prisma migrate status",
-    "test:db": "node --test test/persistence.test.cjs",
-    "test:api": "node --test test/api-base.test.cjs",
-    "test": "node --test test/persistence.test.cjs test/api-base.test.cjs"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
     "@nestjs/platform-express": "^11.1.0",
-    "@prisma/adapter-pg": "7.10.0",
-    "@prisma/client": "7.10.0",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.4",
-    "dotenv": "17.2.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.6",
-    "prisma": "7.10.0"
   }
 }
