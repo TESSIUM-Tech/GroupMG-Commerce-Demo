@@ -16,7 +16,9 @@
     "test:catalog:unit": "node --test test/catalog-unit.test.cjs test/catalog-http.test.cjs",
     "test:catalog": "node --test test/catalog.test.cjs",
     "test:swagger": "node --test test/swagger.test.cjs",
-    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs"
+    "test:orders:unit": "node --test test/orders-unit.test.cjs",
+    "test:orders": "node --test test/orders.test.cjs",
+    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs test/orders-unit.test.cjs test/orders.test.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
