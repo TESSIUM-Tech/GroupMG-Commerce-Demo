@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { Header } from "../components/layout/Header/Header";
-import { Footer } from "../components/layout/Footer/Footer";
-import "../styles/globals.css";
+import Link from "next/link";
+import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "GroupMG Commerce", template: "%s | GroupMG" },
-  description:
-    "Tecnología que va contigo. Celulares, audio y accesorios en GroupMG.",
+  description: "Base inicial de la plataforma de comercio GroupMG.",
 };
 
 export default function RootLayout({
@@ -20,9 +18,17 @@ export default function RootLayout({
         <a className="skip" href="#contenido">
           Saltar al contenido
         </a>
-        <Header />
+        <header>
+          <Link className="brand" href="/">
+            GROUPMG<span>COMMERCE</span>
+          </Link>
+          <nav aria-label="Principal">
+            <Link href="/catalogo">Catálogo</Link>
+            <Link href="/checkout">Checkout</Link>
+          </nav>
+        </header>
         <main id="contenido">{children}</main>
-        <Footer />
+        <footer>GroupMG · Base de desarrollo / v0.1</footer>
       </body>
     </html>
   );

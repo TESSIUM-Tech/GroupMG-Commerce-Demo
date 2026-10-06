@@ -2,7 +2,7 @@
 
 Usar Node 24. Ejecutar los comandos desde la raíz. `pnpm install --frozen-lockfile` instala el lockfile
 compartido. Las variables de Compose se leen de `.env`; las aplicaciones Node
-usan `PORT`; la API requiere `DATABASE_URL` y PostgreSQL disponible. PayPhone sigue pendiente de implementación.
+solo usan `PORT` por ahora. No hay credenciales de proveedores que configurar.
 
 ## Aplicaciones
 
@@ -15,12 +15,8 @@ watch; en otra terminal usar `node --watch apps/api/dist/main.js` o
 `node --watch apps/worker-erp/dist/main.js` después del primer build.
 El worker permanece vivo sin consumir mensajes, hacer cron ni llamar al ERP.
 
-Health web: `/health` (liveness). Health API: `/api/v1/health` o `/api/v1/health/liveness`
-(liveness); `/api/v1/health/readiness` (readiness de PostgreSQL; devuelve 200 si la base
-está conectada o 503 Service Unavailable si no responde).
-Trazabilidad con `x-correlation-id` en cabeceras, respuestas y logs estructurados.
-Validación de DTOs en runtime con rechazo de campos no permitidos en `/api/v1/health/validate`.
-Detalle completo en [api-base.md](api-base.md).
+Health web: `/health`. Health API: `/api/v1/health`. Ambos son liveness;
+un 200 no certifica conexión con PostgreSQL, Redis, RabbitMQ o proveedores.
 No hay rutas de pedidos/pagos que simulen éxito.
 
 ## Contenedores
@@ -35,16 +31,12 @@ Detener: `docker compose --profile app down`; conserva volúmenes.
 Cambiar las variables de contraseña no rota credenciales de volúmenes ya creados.
 
 Las imágenes usan tags de versión, no digest; fijar digest cuando se valide la
-plataforma de despliegue. La API espera PostgreSQL saludable y conecta al iniciar; los demás clientes siguen pendientes. Readiness HTTP implementado en #3 (`/api/v1/health/readiness`).
+plataforma de despliegue. No hay dependencia de arranque entre apps y datos porque
+el scaffold todavía no conecta clientes. Añadir readiness/reintentos al integrarlos.
 
 ## Revisión del init
 
-La CI instala desde lockfile, revisa formato, tipos, compilación, sintaxis Compose y persistencia PostgreSQL.
+La CI instala desde lockfile, revisa formato, tipos, compilación y sintaxis Compose.
 No demuestra tráfico completo de Docker ni seguridad de la integración WAF.
 Las pruebas de dominio se incorporarán con casos de uso; las de integración deben
 cubrir webhooks duplicados, fallos ERP, reentrega y consistencia del outbox.
-
-## Persistencia
-
-Antes de arrancar la API, aplicar migraciones y seed según [DEMO-02](persistence.md).
-No se ejecutan migraciones automáticamente al iniciar. Las credenciales PayPhone no son necesarias para #2.
