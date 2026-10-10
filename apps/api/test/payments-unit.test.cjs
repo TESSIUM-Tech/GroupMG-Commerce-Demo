@@ -11,6 +11,85 @@ const {
   loadPaymentsConfig,
   PaymentsConfigError,
 } = require("../dist/modules/payments/infrastructure/payments.config");
+const {
+  decideFailedPayment,
+} = require("../dist/modules/payments/domain/failed-payment-policy");
+
+test("a canceled or rejected pending payment cancels the order and releases stock once", () => {
+  for (const outcome of ["canceled", "rejected"]) {
+    assert.deepEqual(
+      decideFailedPayment({
+        outcome,
+        paymentStatus: "pending",
+        orderStatus: "pending_payment",
+        otherPendingPayments: false,
+      }),
+      {
+        paymentStatus: outcome,
+        orderStatus: "canceled",
+        releaseReservations: true,
+        reason: "order_canceled",
+      },
+    );
+  }
+});
+
+test("a cancellation after an approval is ignored: never un-confirm", () => {
+  for (const orderStatus of ORDER_STATUSES) {
+    assert.deepEqual(
+      decideFailedPayment({
+        outcome: "canceled",
+        paymentStatus: "approved",
+        orderStatus,
+        otherPendingPayments: false,
+      }),
+      {
+        paymentStatus: null,
+        orderStatus: null,
+        releaseReservations: false,
+        reason: "after_approval_ignored",
+      },
+    );
+  }
+});
+
+test("failed payments never touch orders that are no longer pending or still payable", () => {
+  for (const orderStatus of [
+    "confirmed",
+    "expired",
+    "canceled",
+    "review_required",
+  ]) {
+    const decision = decideFailedPayment({
+      outcome: "canceled",
+      paymentStatus: "pending",
+      orderStatus,
+      otherPendingPayments: false,
+    });
+    assert.equal(decision.paymentStatus, "canceled");
+    assert.equal(decision.orderStatus, null);
+    assert.equal(decision.releaseReservations, false);
+  }
+  const other = decideFailedPayment({
+    outcome: "rejected",
+    paymentStatus: "pending",
+    orderStatus: "pending_payment",
+    otherPendingPayments: true,
+  });
+  assert.equal(other.orderStatus, null);
+  assert.equal(other.releaseReservations, false);
+  for (const paymentStatus of ["canceled", "rejected", "review_required"]) {
+    assert.equal(
+      decideFailedPayment({
+        outcome: "canceled",
+        paymentStatus,
+        orderStatus: "pending_payment",
+        otherPendingPayments: false,
+      }).reason,
+      "already_final",
+    );
+  }
+});
 
 const SECRET = "s".repeat(40);
 const PAYPHONE_ENV = {

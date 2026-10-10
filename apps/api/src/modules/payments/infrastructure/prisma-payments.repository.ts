@@ -1,13 +1,31 @@
+import { randomUUID } from "node:crypto";
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../database/prisma.service";
+import type { OrderStatus } from "../../orders/domain/order-status";
+import { decideApprovedPayment } from "../domain/approved-payment-policy";
+import { decideFailedPayment } from "../domain/failed-payment-policy";
 import type {
   PayableOrder,
+  PaymentStatus,
   PaymentView,
   PaymentsRepository,
   PreparePaymentInput,
   PreparePaymentResult,
+  SettlementInput,
+  SettlementResult,
+  StoredPayment,
 } from "../domain/payments.repository.port";
+
+type Tx = Prisma.TransactionClient;
+
+interface LockedReservation {
+  id: string;
+  productId: string;
+  quantity: number;
+  status: string;
+  expiresAt: Date;
+}
 
 const paymentSelect = {
   id: true,
@@ -146,5 +164,257 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
       where: { id: paymentId, status: "pending" },
       data: { status: "canceled" },
     });
+  }
+
+  findPaymentByClientTransactionId(
+    clientTransactionId: string,
+  ): Promise<StoredPayment | null> {
+    return this.prisma.payment.findUnique({
+      where: { clientTransactionId },
+      select: {
+        id: true,
+        orderId: true,
+        status: true,
+        amountMinor: true,
+        currency: true,
+        clientTransactionId: true,
+        providerTransactionId: true,
+      },
+    });
+  }
+
+  settle(input: SettlementInput): Promise<SettlementResult> {
+    const { now } = input;
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Receipt first: a repeated event stops here and changes nothing.
+      // Concurrent duplicates wait on the unique index and then skip.
+      const receipt = await tx.webhookReceipt.createMany({
+        data: [
+          {
+            provider: "payphone",
+            eventKey: input.eventKey,
+            paymentId: input.paymentId,
+            payloadHash: input.payloadHash,
+            receivedAt: now,
+            verifiedAt: now,
+            processedAt: now,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      if (receipt.count === 0) return { kind: "duplicate" };
+
+      // 2. Locks in the global order: inventory -> reservations -> order ->
+      // payment (same as order creation, payment start and expiry sweep).
+      const { orderId } = await tx.payment.findUniqueOrThrow({
+        where: { id: input.paymentId },
+        select: { orderId: true },
+      });
+      const items = await tx.orderItem.findMany({
+        where: { orderId },
+        select: {
+          productId: true,
+          sku: true,
+          quantity: true,
+          unitPriceMinor: true,
+        },
+        orderBy: { productId: "asc" },
+      });
+      const productIds = items.map((item) => item.productId);
+      await tx.$queryRaw`
+        SELECT "productId" FROM "Inventory"
+        WHERE "productId" = ANY(${productIds}::uuid[])
+        ORDER BY "productId" FOR UPDATE`;
+      const reservations = await tx.$queryRaw<LockedReservation[]>`
+        SELECT "id"::text AS "id", "productId"::text AS "productId", "quantity",
+               "status"::text AS "status", "expiresAt"
+        FROM "StockReservation" WHERE "orderId" = ${orderId}::uuid
+        ORDER BY "id" FOR UPDATE`;
+      const [order] = await tx.$queryRaw<
+        { status: OrderStatus; currency: string; totalMinor: number }[]
+      >`
+        SELECT "status"::text AS "status", "currency", "totalMinor"
+        FROM "Order" WHERE "id" = ${orderId}::uuid FOR UPDATE`;
+      const [payment] = await tx.$queryRaw<
+        { status: PaymentStatus; providerTransactionId: string | null }[]
+      >`
+        SELECT "status"::text AS "status", "providerTransactionId"
+        FROM "Payment" WHERE "id" = ${input.paymentId}::uuid FOR UPDATE`;
+      if (!order || !payment)
+        throw new Error("Payment settlement lost its order");
+
+      const providerTransactionId =
+        payment.providerTransactionId ?? input.providerTransactionId;
+
+      if (input.providerStatus !== "approved") {
+        const otherPending = await tx.payment.count({
+          where: { orderId, status: "pending", id: { not: input.paymentId } },
+        });
+        const decision = decideFailedPayment({
+          outcome: input.providerStatus,
+          paymentStatus: payment.status,
+          orderStatus: order.status,
+          otherPendingPayments: otherPending > 0,
+        });
+        if (decision.releaseReservations) {
+          await this.releaseActive(tx, reservations, now);
+        }
+        if (decision.orderStatus) {
+          await tx.order.update({
+            where: { id: orderId },
+            data: { status: decision.orderStatus },
+            select: { id: true },
+          });
+        }
+        if (decision.paymentStatus) {
+          await tx.payment.update({
+            where: { id: input.paymentId },
+            data: {
+              status: decision.paymentStatus,
+              providerTransactionId,
+              verifiedAt: now,
+            },
+            select: { id: true },
+          });
+        }
+        return {
+          kind: "settled",
+          paymentStatus: decision.paymentStatus ?? payment.status,
+          orderStatus: decision.orderStatus ?? order.status,
+          reason: decision.reason,
+          outboxEventId: null,
+        };
+      }
+
+      // Approved. Reservations already past their expiry are released first,
+      // so "is the stock still free?" is answered on current numbers.
+      const expired = reservations.filter(
+        (r) => r.status === "active" && r.expiresAt <= now,
+      );
+      await this.releaseActive(tx, expired, now);
+      const active = reservations.filter(
+        (r) => r.status === "active" && r.expiresAt > now,
+      );
+      const reservationsActive =
+        reservations.length > 0 && active.length === reservations.length;
+      const inventory = await tx.inventory.findMany({
+        where: { productId: { in: productIds } },
+        select: { productId: true, onHand: true, reserved: true },
+      });
+      const free = new Map(
+        inventory.map((row) => [row.productId, row.onHand - row.reserved]),
+      );
+      const stockAvailable = items.every(
+        (item) => (free.get(item.productId) ?? 0) >= item.quantity,
+      );
+      const decision = decideApprovedPayment({
+        orderStatus: order.status,
+        reservationsActive,
+        stockAvailable,
+        alreadyApplied: payment.status === "approved",
+      });
+
+      if (decision.stock === "consume_reservation") {
+        for (const reservation of active) {
+          await tx.stockReservation.update({
+            where: { id: reservation.id },
+            data: { status: "consumed" },
+            select: { id: true },
+          });
+          await tx.$executeRaw`
+            UPDATE "Inventory"
+            SET "onHand" = "onHand" - ${reservation.quantity},
+                "reserved" = "reserved" - ${reservation.quantity},
+                "updatedAt" = ${now}
+            WHERE "productId" = ${reservation.productId}::uuid`;
+        }
+      } else if (decision.stock === "take_available") {
+        for (const item of items) {
+          const taken = await tx.$executeRaw`
+            UPDATE "Inventory"
+            SET "onHand" = "onHand" - ${item.quantity}, "updatedAt" = ${now}
+            WHERE "productId" = ${item.productId}::uuid
+              AND "onHand" - "reserved" >= ${item.quantity}`;
+          // Rows are locked and availability was just checked: cannot happen.
+          if (taken !== 1) throw new Error("Stock changed under lock");
+        }
+      }
+      if (decision.orderStatus) {
+        await tx.order.update({
+          where: { id: orderId },
+          data: { status: decision.orderStatus },
+          select: { id: true },
+        });
+      }
+      if (payment.status !== decision.paymentStatus) {
+        await tx.payment.update({
+          where: { id: input.paymentId },
+          data: {
+            status: decision.paymentStatus,
+            providerTransactionId,
+            verifiedAt: now,
+          },
+          select: { id: true },
+        });
+      }
+
+      let outboxEventId: string | null = null;
+      if (decision.orderStatus === "confirmed") {
+        // Same transaction as the confirmation: no sale without its event.
+        outboxEventId = randomUUID();
+        await tx.outboxEvent.create({
+          data: {
+            id: outboxEventId,
+            orderId,
+            type: "order.confirmed.v1",
+            payload: {
+              eventId: outboxEventId,
+              type: "order.confirmed.v1",
+              occurredAt: now.toISOString(),
+              correlationId: input.correlationId,
+              data: {
+                orderId,
+                currency: order.currency,
+                totalMinor: order.totalMinor,
+                items: items.map(({ sku, quantity, unitPriceMinor }) => ({
+                  sku,
+                  quantity,
+                  unitPriceMinor,
+                })),
+              },
+            },
+            createdAt: now,
+          },
+          select: { id: true },
+        });
+      }
+      return {
+        kind: "settled",
+        paymentStatus: decision.paymentStatus,
+        orderStatus: decision.orderStatus ?? order.status,
+        reason: decision.reason,
+        outboxEventId,
+      };
+    });
+  }
+
+  /** active -> released once, giving the units back to free stock. */
+  private async releaseActive(
+    tx: Tx,
+    reservations: LockedReservation[],
+    now: Date,
+  ): Promise<void> {
+    for (const reservation of reservations) {
+      const released = await tx.stockReservation.updateMany({
+        where: { id: reservation.id, status: "active" },
+        data: { status: "released" },
+      });
+      if (released.count === 1) {
+        await tx.$executeRaw`
+          UPDATE "Inventory"
+          SET "reserved" = "reserved" - ${reservation.quantity}, "updatedAt" = ${now}
+          WHERE "productId" = ${reservation.productId}::uuid`;
+      }
+    }
   }
 }

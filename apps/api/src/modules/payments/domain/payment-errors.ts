@@ -38,6 +38,25 @@ export class InvalidPayPhoneNumberError extends PaymentDomainError {
   }
 }
 
+export class InvalidCallbackSignatureError extends PaymentDomainError {
+  constructor() {
+    super("Invalid callback signature");
+  }
+}
+
+export class PaymentNotFoundError extends PaymentDomainError {
+  constructor() {
+    super("Payment not found");
+  }
+}
+
+/** The provider's sale does not match what we stored: never settle it. */
+export class ProviderSaleMismatchError extends PaymentDomainError {
+  constructor(readonly field: string) {
+    super(`Provider sale does not match the stored payment (${field})`);
+  }
+}
+
 export class PaymentRefusedByProviderError extends PaymentDomainError {
   constructor(readonly providerMessage: string) {
     super(`PayPhone refused the payment: ${providerMessage}`);

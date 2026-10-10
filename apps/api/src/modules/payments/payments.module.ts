@@ -17,10 +17,12 @@ import {
 } from "./domain/payments.repository.port";
 import { PrismaPaymentsRepository } from "./infrastructure/prisma-payments.repository";
 import { StartPaymentUseCase } from "./application/start-payment.use-case";
+import { HandlePayPhoneCallbackUseCase } from "./application/handle-callback.use-case";
 import { PaymentsController } from "./presentation/payments.controller";
+import { PayPhoneCallbackController } from "./presentation/payphone-callback.controller";
 
 @Module({
-  controllers: [PaymentsController],
+  controllers: [PaymentsController, PayPhoneCallbackController],
   providers: [
     PrismaPaymentsRepository,
     { provide: PAYMENTS_REPOSITORY, useExisting: PrismaPaymentsRepository },
@@ -31,6 +33,15 @@ import { PaymentsController } from "./presentation/payments.controller";
         provider: PaymentProvider | null,
         config: PaymentsConfig,
       ) => new StartPaymentUseCase(repository, provider, config),
+      inject: [PAYMENTS_REPOSITORY, PAYMENT_PROVIDER, PAYMENTS_CONFIG],
+    },
+    {
+      provide: HandlePayPhoneCallbackUseCase,
+      useFactory: (
+        repository: PaymentsRepository,
+        provider: PaymentProvider | null,
+        config: PaymentsConfig,
+      ) => new HandlePayPhoneCallbackUseCase(repository, provider, config),
       inject: [PAYMENTS_REPOSITORY, PAYMENT_PROVIDER, PAYMENTS_CONFIG],
     },
     {

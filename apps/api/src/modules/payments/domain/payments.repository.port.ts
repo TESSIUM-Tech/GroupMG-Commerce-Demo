@@ -57,6 +57,52 @@ export interface PaymentsRepository {
   ): Promise<void>;
   /** pending -> canceled when the provider refused to create the sale. */
   cancelPendingPayment(paymentId: string): Promise<void>;
+  findPaymentByClientTransactionId(
+    clientTransactionId: string,
+  ): Promise<StoredPayment | null>;
+  /**
+   * Applies a provider-verified outcome in one transaction: stores the receipt
+   * (deduplicated by eventKey), then updates payment, order, stock, reservations
+   * and, when the order is confirmed, the order.confirmed.v1 outbox event.
+   */
+  settle(input: SettlementInput): Promise<SettlementResult>;
 }
+
+export interface StoredPayment {
+  id: string;
+  orderId: string;
+  status: PaymentStatus;
+  amountMinor: number;
+  currency: string;
+  clientTransactionId: string;
+  providerTransactionId: string | null;
+}
+
+/** Final outcomes only; pending sales are never settled. */
+export type SettledProviderStatus = "approved" | "canceled" | "rejected";
+
+export interface SettlementInput {
+  paymentId: string;
+  providerTransactionId: string;
+  providerStatus: SettledProviderStatus;
+  /** Provider event identity, e.g. "45441137:approved". */
+  eventKey: string;
+  /** SHA-256 of the original notification (method, URL and raw body). */
+  payloadHash: string;
+  correlationId: string;
+  now: Date;
+}
+
+export type SettlementResult =
+  | { kind: "duplicate" }
+  | {
+      kind: "settled";
+      paymentStatus: PaymentStatus;
+      orderStatus: OrderStatus;
+      /** Why: policy reason for approvals, or the cancellation path taken. */
+      reason: string;
+      /** order.confirmed.v1 outbox eventId when the order was confirmed. */
+      outboxEventId: string | null;
+    };
 
 export const PAYMENTS_REPOSITORY = Symbol("PAYMENTS_REPOSITORY");
