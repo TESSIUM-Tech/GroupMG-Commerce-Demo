@@ -166,6 +166,34 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
     });
   }
 
+  findPendingPayments(
+    createdBefore: Date,
+    limit: number,
+  ): Promise<(StoredPayment & { createdAt: Date })[]> {
+    return this.prisma.payment.findMany({
+      where: { status: "pending", createdAt: { lte: createdBefore } },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+      select: {
+        id: true,
+        orderId: true,
+        status: true,
+        amountMinor: true,
+        currency: true,
+        clientTransactionId: true,
+        providerTransactionId: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async flagPendingForReview(paymentId: string): Promise<void> {
+    await this.prisma.payment.updateMany({
+      where: { id: paymentId, status: "pending" },
+      data: { status: "review_required" },
+    });
+  }
+
   findPaymentByClientTransactionId(
     clientTransactionId: string,
   ): Promise<StoredPayment | null> {

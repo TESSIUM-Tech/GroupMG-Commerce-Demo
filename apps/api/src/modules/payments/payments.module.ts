@@ -18,6 +18,8 @@ import {
 import { PrismaPaymentsRepository } from "./infrastructure/prisma-payments.repository";
 import { StartPaymentUseCase } from "./application/start-payment.use-case";
 import { HandlePayPhoneCallbackUseCase } from "./application/handle-callback.use-case";
+import { ReconcilePaymentsUseCase } from "./application/reconcile-payments.use-case";
+import { PaymentReconciliationScheduler } from "./infrastructure/payment-reconciliation.scheduler";
 import { PaymentsController } from "./presentation/payments.controller";
 import { PayPhoneCallbackController } from "./presentation/payphone-callback.controller";
 
@@ -44,6 +46,20 @@ import { PayPhoneCallbackController } from "./presentation/payphone-callback.con
       ) => new HandlePayPhoneCallbackUseCase(repository, provider, config),
       inject: [PAYMENTS_REPOSITORY, PAYMENT_PROVIDER, PAYMENTS_CONFIG],
     },
+    {
+      provide: ReconcilePaymentsUseCase,
+      useFactory: (
+        repository: PaymentsRepository,
+        provider: PaymentProvider | null,
+        callback: HandlePayPhoneCallbackUseCase,
+      ) => new ReconcilePaymentsUseCase(repository, provider, callback),
+      inject: [
+        PAYMENTS_REPOSITORY,
+        PAYMENT_PROVIDER,
+        HandlePayPhoneCallbackUseCase,
+      ],
+    },
+    PaymentReconciliationScheduler,
     {
       provide: PAYMENTS_CONFIG,
       useFactory: () => {

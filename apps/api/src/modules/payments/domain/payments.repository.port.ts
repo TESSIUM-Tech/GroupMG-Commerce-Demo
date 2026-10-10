@@ -66,6 +66,13 @@ export interface PaymentsRepository {
    * and, when the order is confirmed, the order.confirmed.v1 outbox event.
    */
   settle(input: SettlementInput): Promise<SettlementResult>;
+  /** Oldest pending payments created at or before `createdBefore`. */
+  findPendingPayments(
+    createdBefore: Date,
+    limit: number,
+  ): Promise<(StoredPayment & { createdAt: Date })[]>;
+  /** pending -> review_required when the provider data cannot be trusted. */
+  flagPendingForReview(paymentId: string): Promise<void>;
 }
 
 export interface StoredPayment {
