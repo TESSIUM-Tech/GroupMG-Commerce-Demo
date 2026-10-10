@@ -11,15 +11,16 @@ export const ORDER_STATUSES = [
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 /**
- * Allowed transitions (docs/demo-rules.md). confirmed, canceled and expired are final.
- * review_required covers a payment approved after its reservation was released.
+ * Allowed transitions (docs/demo-rules.md). confirmed and canceled are final.
+ * expired only moves on when a verified payment arrives late: confirmed if the
+ * stock is still available, otherwise review_required (never confirm missing stock).
  */
 const TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending_payment: ["confirmed", "canceled", "expired", "review_required"],
+  expired: ["confirmed", "review_required"],
   review_required: ["confirmed", "canceled"],
   confirmed: [],
   canceled: [],
-  expired: [],
 };
 
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
