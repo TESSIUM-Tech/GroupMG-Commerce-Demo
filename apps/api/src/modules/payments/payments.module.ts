@@ -11,9 +11,28 @@ import {
 } from "./infrastructure/payments.config";
 import { PayPhoneProvider } from "./infrastructure/payphone.provider";
 import { SimulatedPaymentProvider } from "./infrastructure/simulated.provider";
+import {
+  PAYMENTS_REPOSITORY,
+  type PaymentsRepository,
+} from "./domain/payments.repository.port";
+import { PrismaPaymentsRepository } from "./infrastructure/prisma-payments.repository";
+import { StartPaymentUseCase } from "./application/start-payment.use-case";
+import { PaymentsController } from "./presentation/payments.controller";
 
 @Module({
+  controllers: [PaymentsController],
   providers: [
+    PrismaPaymentsRepository,
+    { provide: PAYMENTS_REPOSITORY, useExisting: PrismaPaymentsRepository },
+    {
+      provide: StartPaymentUseCase,
+      useFactory: (
+        repository: PaymentsRepository,
+        provider: PaymentProvider | null,
+        config: PaymentsConfig,
+      ) => new StartPaymentUseCase(repository, provider, config),
+      inject: [PAYMENTS_REPOSITORY, PAYMENT_PROVIDER, PAYMENTS_CONFIG],
+    },
     {
       provide: PAYMENTS_CONFIG,
       useFactory: () => {

@@ -8,10 +8,46 @@ const {
   toPayPhoneNumber,
 } = require("../dist/modules/payments/domain/payphone-phone");
 const { priceOrder } = require("../dist/modules/orders/domain/order-pricing");
+const {
+  signCallback,
+  verifyCallbackSignature,
+  buildResponseUrl,
+  CALLBACK_PATH,
+} = require("../dist/modules/payments/application/callback-signature");
 
 function item(quantity, unitPriceMinor, taxRateBps, taxMinor) {
   return { quantity, unitPriceMinor, taxRateBps, taxMinor };
 }
+
+test("callback URLs carry an HMAC of the clientTransactionId", () => {
+  const secret = "k".repeat(40);
+  const signature = signCallback(secret, "c-123");
+  assert.match(signature, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(signCallback(secret, "c-123"), signature, "deterministic");
+  assert.equal(
+    buildResponseUrl("https://demo.example.com", secret, "c-123"),
+    `https://demo.example.com${CALLBACK_PATH}/${signature}`,
+  );
+  assert.equal(verifyCallbackSignature(secret, "c-123", signature), true);
+});
+
+test("forged, altered or foreign signatures are rejected", () => {
+  const secret = "k".repeat(40);
+  const signature = signCallback(secret, "c-123");
+  const flipped = (signature[0] === "A" ? "B" : "A") + signature.slice(1);
+  for (const [clientTransactionId, candidate] of [
+    ["c-124", signature],
+    ["c-123", flipped],
+    ["c-123", signature.slice(1)],
+    ["c-123", ""],
+    ["c-123", signCallback("x".repeat(40), "c-123")],
+  ]) {
+    assert.equal(
+      verifyCallbackSignature(secret, clientTransactionId, candidate),
+      false,
+    );
+  }
+});
 
 test("pickup order with taxed products: base, VAT and total", () => {
   assert.deepEqual(
