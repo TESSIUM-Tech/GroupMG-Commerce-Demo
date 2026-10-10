@@ -1,4 +1,22 @@
 routes:
+  # Aviso de PayPhone (DEMO-09): ruta pública sin firma del proveedor; se
+  # limita por IP antes de llegar a la API, que además verifica su HMAC.
+  - id: payphone-callback
+    uri: /api/v1/payments/payphone/callback/*
+    priority: 20
+    methods: [GET, POST]
+    plugins:
+      limit-count:
+        count: 30
+        time_window: 60
+        key_type: var
+        key: remote_addr
+        policy: local
+        rejected_code: 429
+    upstream:
+      type: roundrobin
+      nodes:
+        "api:3001": 1
   - id: api
     uri: /api/*
     priority: 10
