@@ -7,6 +7,136 @@ const {
   ORDER_STATUSES,
   canTransition,
 } = require("../dist/modules/orders/domain/order-status");
+const {
+  loadPaymentsConfig,
+  PaymentsConfigError,
+} = require("../dist/modules/payments/infrastructure/payments.config");
+
+const SECRET = "s".repeat(40);
+const PAYPHONE_ENV = {
+  PAYMENTS_MODE: "payphone",
+  PAYMENTS_CALLBACK_SECRET: SECRET,
+  PAYPHONE_TOKEN: "token-value-must-never-leak",
+  PAYPHONE_STORE_ID: "store-value-must-never-leak",
+  PAYPHONE_RESPONSE_URL: "https://demo.example.com/",
+};
+
+function configError(env) {
+  try {
+    loadPaymentsConfig(env);
+  } catch (error) {
+    assert.ok(error instanceof PaymentsConfigError);
+    return error.message;
+  }
+  assert.fail("expected a configuration error");
+}
+
+test("payments are disabled by default so the API starts without PayPhone", () => {
+  const config = loadPaymentsConfig({});
+  assert.equal(config.mode, "disabled");
+  assert.equal(config.payphone, null);
+  assert.equal(config.callbackSecret, null);
+  // Credentials alone do not switch PayPhone on.
+  assert.equal(
+    loadPaymentsConfig({ ...PAYPHONE_ENV, PAYMENTS_MODE: undefined }).mode,
+    "disabled",
+  );
+});
+
+test("payphone mode loads credentials and normalizes the callback base URL", () => {
+  const config = loadPaymentsConfig(PAYPHONE_ENV);
+  assert.equal(config.mode, "payphone");
+  assert.deepEqual(config.payphone, {
+    token: "token-value-must-never-leak",
+    storeId: "store-value-must-never-leak",
+  });
+  assert.equal(config.responseBaseUrl, "https://demo.example.com");
+  assert.equal(config.callbackSecret, SECRET);
+  assert.equal(
+    loadPaymentsConfig({
+      ...PAYPHONE_ENV,
+      PAYPHONE_RESPONSE_URL: "http://localhost:8080/",
+    }).responseBaseUrl,
+    "http://localhost:8080",
+  );
+});
+
+test("store id is optional because some PayPhone apps only expose the token", () => {
+  for (const storeId of [undefined, "", "   "]) {
+    const config = loadPaymentsConfig({
+      ...PAYPHONE_ENV,
+      PAYPHONE_STORE_ID: storeId,
+    });
+    assert.deepEqual(config.payphone, {
+      token: "token-value-must-never-leak",
+      storeId: null,
+    });
+  }
+});
+
+test("missing payphone variables are named without exposing any value", () => {
+  const message = configError({
+    PAYMENTS_MODE: "payphone",
+    PAYPHONE_STORE_ID: "store-value-must-never-leak",
+  });
+  for (const name of [
+    "PAYMENTS_CALLBACK_SECRET",
+    "PAYPHONE_RESPONSE_URL",
+    "PAYPHONE_TOKEN",
+  ]) {
+    assert.match(message, new RegExp(name));
+  }
+  assert.doesNotMatch(message, /PAYPHONE_STORE_ID/);
+  assert.doesNotMatch(message, /must-never-leak/);
+});
+
+test("weak secrets, insecure URLs and unknown modes are rejected", () => {
+  const cases = [
+    [{ ...PAYPHONE_ENV, PAYMENTS_CALLBACK_SECRET: "short" }, /at least 32/],
+    [
+      { ...PAYPHONE_ENV, PAYPHONE_RESPONSE_URL: "http://demo.example.com" },
+      /https/,
+    ],
+    [
+      { ...PAYPHONE_ENV, PAYPHONE_RESPONSE_URL: "https://x.test/?a=1" },
+      /query/,
+    ],
+    [{ ...PAYPHONE_ENV, PAYPHONE_RESPONSE_URL: "not a url" }, /valid URL/],
+    [{ PAYMENTS_MODE: "paypal" }, /PAYMENTS_MODE/],
+    [
+      { PAYMENTS_MODE: "simulated", PAYMENTS_SIMULATED_OUTCOME: "maybe" },
+      /OUTCOME/,
+    ],
+  ];
+  for (const [env, expected] of cases) {
+    const message = configError(env);
+    assert.match(message, expected);
+    assert.doesNotMatch(message, /must-never-leak|short/);
+  }
+});
+
+test("simulated mode needs the HMAC key and is forbidden in production", () => {
+  const config = loadPaymentsConfig({
+    PAYMENTS_MODE: "simulated",
+    PAYMENTS_SIMULATED_OUTCOME: "rejected",
+    PAYMENTS_CALLBACK_SECRET: SECRET,
+  });
+  assert.equal(config.mode, "simulated");
+  assert.equal(config.simulatedOutcome, "rejected");
+  assert.equal(config.payphone, null);
+  assert.match(
+    configError({ PAYMENTS_MODE: "simulated" }),
+    /PAYMENTS_CALLBACK_SECRET is required/,
+  );
+  assert.match(
+    configError({
+      PAYMENTS_MODE: "simulated",
+      PAYMENTS_CALLBACK_SECRET: SECRET,
+      NODE_ENV: "production",
+    }),
+    /not allowed in production/,
+  );
+});
 
 function decide(context) {
   return decideApprovedPayment({
