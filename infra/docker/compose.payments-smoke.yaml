@@ -1,0 +1,10 @@
+# Solo para la prueba local de pagos a través del gateway (docs/payments.md).
+# La imagen fija NODE_ENV=production y la API prohíbe el modo simulado en
+# producción; este override marca el contenedor como entorno de pruebas.
+# Nunca usar en un despliegue real.
+#   docker compose -f compose.yaml -f infra/docker/compose.payments-smoke.yaml --profile app up -d
+services:
+  api:
+    environment:
+      NODE_ENV: development
+      PAYMENTS_MODE: simulated

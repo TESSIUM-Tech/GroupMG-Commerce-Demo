@@ -87,11 +87,18 @@ expired`. Ocurre al crear un pedido de esos productos y en un barrido interno ca
 
 ## Estados
 
-| Desde                              | Hacia permitido                                       |
-| ---------------------------------- | ----------------------------------------------------- |
-| `pending_payment`                  | `confirmed`, `canceled`, `expired`, `review_required` |
-| `review_required`                  | `confirmed`, `canceled`                               |
-| `confirmed`, `canceled`, `expired` | ninguno (finales)                                     |
+| Desde                   | Hacia permitido                                       |
+| ----------------------- | ----------------------------------------------------- |
+| `pending_payment`       | `confirmed`, `canceled`, `expired`, `review_required` |
+| `expired`               | `confirmed`, `review_required` (solo pago tardío)     |
+| `review_required`       | `confirmed`, `canceled`                               |
+| `confirmed`, `canceled` | ninguno (finales)                                     |
+
+Pago tardío (DEMO-09, `payments/domain/approved-payment-policy.ts`): si un pago
+aprobado llega con la reserva vencida, se confirma solo si el stock libre alcanza;
+si no, pedido y pago pasan a `review_required`. Nunca se confirma stock inexistente.
+Un aviso repetido del mismo pago no cambia nada; un segundo pago aprobado para un
+pedido ya confirmado (cobro doble) pasa a `review_required` para devolverlo.
 
 `domain/order-status.ts` exporta `canTransition` y `assertTransition` para DEMO-09.
 

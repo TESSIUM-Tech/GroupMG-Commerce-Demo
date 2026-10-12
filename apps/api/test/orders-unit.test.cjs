@@ -37,6 +37,8 @@ test("order transitions allow only the documented paths", () => {
     ["pending_payment", "canceled"],
     ["pending_payment", "expired"],
     ["pending_payment", "review_required"],
+    ["expired", "confirmed"],
+    ["expired", "review_required"],
     ["review_required", "confirmed"],
     ["review_required", "canceled"],
   ];
@@ -50,7 +52,8 @@ test("order transitions allow only the documented paths", () => {
 
 test("invalid transitions are rejected with a domain error", () => {
   for (const [from, to] of [
-    ["expired", "confirmed"],
+    ["expired", "canceled"],
+    ["expired", "pending_payment"],
     ["confirmed", "canceled"],
     ["canceled", "pending_payment"],
     ["pending_payment", "pending_payment"],

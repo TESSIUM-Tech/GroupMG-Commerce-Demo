@@ -26,6 +26,13 @@ services:
     environment:
       PORT: "3001"
       DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
+      # Pagos (DEMO-09): opcionales; sin ellos la API arranca con pagos desactivados.
+      PAYMENTS_MODE: ${PAYMENTS_MODE:-disabled}
+      PAYMENTS_SIMULATED_OUTCOME: ${PAYMENTS_SIMULATED_OUTCOME:-approved}
+      PAYMENTS_CALLBACK_SECRET: ${PAYMENTS_CALLBACK_SECRET:-}
+      PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
+      PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
+      PAYPHONE_RESPONSE_URL: ${PAYPHONE_RESPONSE_URL:-}
     depends_on:
       postgres: { condition: service_healthy }
   worker-erp:
