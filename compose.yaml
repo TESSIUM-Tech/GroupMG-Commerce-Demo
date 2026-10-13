@@ -16,6 +16,8 @@ services:
       args: { WORKSPACE: "@groupmg/web" }
     profiles: [app]
     networks: [edge]
+    environment:
+      INTERNAL_API_URL: "http://api:3001"
   api:
     build:
       context: .

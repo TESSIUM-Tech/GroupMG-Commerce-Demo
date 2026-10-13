@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { products } from "../../../views/index/data/products";
 import { ProductView } from "../../../views/product/ProductView";
+import { fetchProductBySkuOrId } from "../../../services/catalog-api";
 
-export function generateStaticParams() {
-  return products.map(({ sku }) => ({ sku }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -12,8 +10,18 @@ export async function generateMetadata({
   params: Promise<{ sku: string }>;
 }) {
   const { sku } = await params;
-  const product = products.find((item) => item.sku === sku);
-  return { title: product?.name ?? "Producto no encontrado" };
+  try {
+    const product = await fetchProductBySkuOrId(sku);
+    if (!product) {
+      return { title: "Producto no encontrado" };
+    }
+    return {
+      title: `${product.name} · GroupMG`,
+      description: `Detalles de ${product.name}. Disponibilidad y precio en GroupMG Commerce.`,
+    };
+  } catch {
+    return { title: "Producto · GroupMG" };
+  }
 }
 
 export default async function ProductPage({
@@ -22,7 +30,11 @@ export default async function ProductPage({
   params: Promise<{ sku: string }>;
 }) {
   const { sku } = await params;
-  const product = products.find((item) => item.sku === sku);
-  if (!product) notFound();
+  const product = await fetchProductBySkuOrId(sku);
+
+  if (!product) {
+    notFound();
+  }
+
   return <ProductView product={product} />;
 }
