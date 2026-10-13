@@ -29,11 +29,7 @@ export function CheckoutView() {
     try {
       setError("");
       setLoadFailed(false);
-      setItems(
-        readCart().filter((item) =>
-          products.some((product) => product.sku === item.sku),
-        ),
-      );
+      setItems(readCart());
     } catch {
       setLoadFailed(true);
       setError(
