@@ -20,8 +20,22 @@ export function ProductInformation({ product }: { product: Product }) {
   const [color, setColor] = useState("Titanio");
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
-  const taxMinor = Math.round((product.priceMinor * 1500) / 10000);
+  const categorySlug =
+    typeof product.category === "object"
+      ? product.category.slug
+      : product.category;
+  const isOutOfStock =
+    product.inStock === false ||
+    (product.availableQuantity !== undefined
+      ? product.availableQuantity === 0
+      : product.stock === 0);
+  const availableCount = product.availableQuantity ?? product.stock ?? 0;
+  const taxRateBps = product.taxRateBps ?? 1500;
+  const taxMinor = Math.round((product.priceMinor * taxRateBps) / 10000);
   const totalMinor = product.priceMinor + taxMinor;
+  const description =
+    product.description ||
+    "Explora la tecnología oficial de la colección GroupMG Commerce.";
   const phones = products.filter((item) => item.category === "celulares");
 
   function addToCart() {
@@ -42,20 +56,20 @@ export function ProductInformation({ product }: { product: Product }) {
   return (
     <section className={styles.information} aria-labelledby="product-title">
       <p className="eyebrow">
-        {product.category === "celulares" ? "Nova series" : "Colección GroupMG"}
+        {categorySlug === "celulares" ? "Nova series" : "Colección GroupMG"}
       </p>
       <h1 id="product-title">{product.name}</h1>
-      <p className={styles.description}>{product.description}</p>
+      <p className={styles.description}>{description}</p>
       <div className={styles.price}>
         {formatPrice(totalMinor)}
         <span>IVA incluido</span>
       </div>
       <p className={styles.breakdown}>
-        Base {formatPrice(product.priceMinor)} + IVA (15 %){" "}
-        {formatPrice(taxMinor)}
+        Base {formatPrice(product.priceMinor)} + IVA (
+        {Math.round(taxRateBps / 100)} %) {formatPrice(taxMinor)}
       </p>
       <div className={styles.options}>
-        {product.category === "celulares" && (
+        {categorySlug === "celulares" && (
           <div>
             <p className={styles.optionLabel}>Elige tu equipo</p>
             <div className={styles.models}>
@@ -95,11 +109,11 @@ export function ProductInformation({ product }: { product: Product }) {
         </fieldset>
       </div>
       <p className={styles.demo}>
-        {product.stock === 0
+        {isOutOfStock
           ? "● Agotado en el catálogo demo"
-          : `● ${product.stock} disponibles en el catálogo demo`}
+          : `● ${availableCount} disponibles en el catálogo demo`}
       </p>
-      {product.stock === 0 && (
+      {isOutOfStock && (
         <Alert
           variant="warning"
           title="Este producto está agotado"
@@ -111,9 +125,9 @@ export function ProductInformation({ product }: { product: Product }) {
       <Button
         className={styles.add}
         onClick={addToCart}
-        disabled={product.stock === 0}
+        disabled={isOutOfStock}
       >
-        {product.stock === 0 ? "Producto agotado" : "Agregar al carrito"}{" "}
+        {isOutOfStock ? "Producto agotado" : "Agregar al carrito"}{" "}
         <span>{formatPrice(totalMinor)}</span>
       </Button>
       <p className={styles.feedback} role="status">

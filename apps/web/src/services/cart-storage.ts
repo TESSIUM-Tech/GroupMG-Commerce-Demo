@@ -33,7 +33,8 @@ export function addCartItem(sku: string, color: string) {
   const quantity = items
     .filter((item) => item.sku === sku)
     .reduce((sum, item) => sum + item.quantity, 0);
-  if (!product || quantity >= product.stock)
+  const availableStock = product?.availableQuantity ?? product?.stock ?? 0;
+  if (!product || quantity >= availableStock)
     throw new Error("Demo stock unavailable");
   const existing = items.find(
     (item) => item.sku === sku && item.color === color,

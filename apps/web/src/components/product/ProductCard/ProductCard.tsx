@@ -4,6 +4,16 @@ import type { Product } from "../../../types/product";
 import { Price } from "../../ui/Price/Price";
 import styles from "./ProductCard.module.css";
 export function ProductCard({ product }: { product: Product }) {
+  const isOutOfStock =
+    product.inStock === false ||
+    (product.availableQuantity !== undefined
+      ? product.availableQuantity === 0
+      : product.stock === 0);
+  const categoryLabel =
+    typeof product.category === "object"
+      ? product.category.name
+      : product.category;
+
   return (
     <article className={styles.card}>
       <Link
@@ -11,7 +21,7 @@ export function ProductCard({ product }: { product: Product }) {
         aria-label={`Ver ${product.name}`}
         className={styles.link}
       >
-        {product.stock === 0 && <span className={styles.stock}>Agotado</span>}
+        {isOutOfStock && <span className={styles.stock}>Agotado</span>}
         <div className={styles.image}>
           <Image
             src={product.imageUrl}
@@ -21,12 +31,14 @@ export function ProductCard({ product }: { product: Product }) {
           />
         </div>
         <div className={styles.content}>
-          <span className={styles.category}>{product.category}</span>
+          <span className={styles.category}>{categoryLabel}</span>
           <h3>{product.name}</h3>
           <p className={styles.price}>
             <Price amountMinor={product.priceMinor} />
           </p>
-          <p className={styles.description}>{product.description}</p>
+          {product.description && (
+            <p className={styles.description}>{product.description}</p>
+          )}
           <span className={styles.tax}>Precio base · IVA no incluido</span>
         </div>
       </Link>

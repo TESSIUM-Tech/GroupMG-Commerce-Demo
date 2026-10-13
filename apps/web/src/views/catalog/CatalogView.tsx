@@ -1,31 +1,98 @@
 "use client";
-import { useRef, useState } from "react";
-import { products } from "../index/data/products";
+
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import type { Product } from "../../types/product";
+import { fetchCatalogProducts } from "../../services/catalog-api";
 import { Input } from "../../components/ui/Input/Input";
 import { Select } from "../../components/ui/Select/Select";
 import { Button } from "../../components/ui/Button/Button";
 import { ProductCard } from "../../components/product/ProductCard/ProductCard";
-import styles from "./CatalogView.module.css";
 import { StatePanel } from "../../components/ui/StatePanel/StatePanel";
+import styles from "./CatalogView.module.css";
 
 export function CatalogView() {
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
   const searchInput = useRef<HTMLInputElement>(null);
-  const [category, setCategory] = useState("todos");
-  const [sort, setSort] = useState("featured");
-  const visible = products.filter(
-    (product) =>
-      (category === "todos" || product.category === category) &&
-      product.name
-        .toLocaleLowerCase("es")
-        .includes(search.trim().toLocaleLowerCase("es")),
+
+  const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [category, setCategory] = useState(
+    searchParams.get("category") ?? "todos",
   );
-  if (sort !== "featured")
-    visible.sort((a, b) =>
-      sort === "low"
-        ? a.priceMinor - b.priceMinor
-        : b.priceMinor - a.priceMinor,
-    );
+  const [sort, setSort] = useState(searchParams.get("sort") ?? "featured");
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  // Sincroniza los filtros con la URL del navegador para compartibilidad y recarga
+  const syncUrl = (
+    nextSearch: string,
+    nextCategory: string,
+    nextSort: string,
+  ) => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (nextSearch.trim()) params.set("q", nextSearch.trim());
+    if (nextCategory && nextCategory !== "todos")
+      params.set("category", nextCategory);
+    if (nextSort && nextSort !== "featured") params.set("sort", nextSort);
+    const query = params.toString();
+    const newUrl = query ? `/catalogo?${query}` : `/catalogo`;
+    window.history.replaceState(null, "", newUrl);
+  };
+
+  useEffect(() => {
+    let isCancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const timer = setTimeout(() => {
+      fetchCatalogProducts({
+        q: search.trim() || undefined,
+        category: category !== "todos" ? category : undefined,
+        limit: 100,
+      })
+        .then((res) => {
+          if (!isCancelled) {
+            setProducts(res.items);
+            setLoading(false);
+          }
+        })
+        .catch((err: unknown) => {
+          if (!isCancelled) {
+            const message =
+              err instanceof Error
+                ? err.message
+                : "No se pudo conectar con el catálogo de la API";
+            setError(message);
+            setLoading(false);
+          }
+        });
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, category, refetchTrigger]);
+
+  const sortedProducts = [...products];
+  if (sort === "low") {
+    sortedProducts.sort((a, b) => a.priceMinor - b.priceMinor);
+  } else if (sort === "high") {
+    sortedProducts.sort((a, b) => b.priceMinor - a.priceMinor);
+  }
+
+  const handleClearFilters = () => {
+    setSearch("");
+    setCategory("todos");
+    setSort("featured");
+    syncUrl("", "todos", "featured");
+    searchInput.current?.focus();
+  };
+
   return (
     <div className={`container ${styles.page}`}>
       <p className="eyebrow">Explora la colección</p>
@@ -41,34 +108,70 @@ export function CatalogView() {
           type="search"
           placeholder="¿Qué estás buscando?"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            const nextSearch = event.target.value;
+            setSearch(nextSearch);
+            syncUrl(nextSearch, category, sort);
+          }}
         />
         <Select
           label="Categoría"
           value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          onChange={(event) => {
+            const nextCategory = event.target.value;
+            setCategory(nextCategory);
+            syncUrl(search, nextCategory, sort);
+          }}
         >
           <option value="todos">Todas las categorías</option>
           <option value="celulares">Celulares</option>
           <option value="audio">Audio</option>
           <option value="accesorios">Accesorios</option>
+          <option value="computacion">Computación</option>
         </Select>
         <Select
           label="Ordenar por"
           value={sort}
-          onChange={(event) => setSort(event.target.value)}
+          onChange={(event) => {
+            const nextSort = event.target.value;
+            setSort(nextSort);
+            syncUrl(search, category, nextSort);
+          }}
         >
           <option value="featured">Destacados</option>
           <option value="low">Menor precio</option>
           <option value="high">Mayor precio</option>
         </Select>
       </div>
+
       <p className={styles.count} role="status">
-        {visible.length} productos · Colección de demostración
+        {loading
+          ? "Consultando catálogo..."
+          : error
+            ? "Error de conexión"
+            : `${sortedProducts.length} productos · Catálogo`}
       </p>
-      {visible.length ? (
+
+      {error ? (
+        <StatePanel
+          kind="error"
+          title="No pudimos cargar los productos"
+          description={error}
+          action={
+            <Button onClick={() => setRefetchTrigger((c) => c + 1)}>
+              Reintentar
+            </Button>
+          }
+        />
+      ) : loading ? (
+        <StatePanel
+          kind="loading"
+          title="Cargando productos..."
+          description="Consultando disponibilidad en el catálogo."
+        />
+      ) : sortedProducts.length ? (
         <div className={styles.grid}>
-          {visible.map((product) => (
+          {sortedProducts.map((product) => (
             <ProductCard product={product} key={product.sku} />
           ))}
         </div>
@@ -77,18 +180,7 @@ export function CatalogView() {
           kind="empty"
           title="No encontramos ese producto"
           description="Prueba otro nombre o explora todas las categorías."
-          action={
-            <Button
-              onClick={() => {
-                setSearch("");
-                setCategory("todos");
-                setSort("featured");
-                searchInput.current?.focus();
-              }}
-            >
-              Limpiar filtros
-            </Button>
-          }
+          action={<Button onClick={handleClearFilters}>Limpiar filtros</Button>}
         />
       )}
     </div>

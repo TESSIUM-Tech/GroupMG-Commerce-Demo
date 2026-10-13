@@ -9,8 +9,12 @@ import styles from "./ProductGallery.module.css";
 export function ProductGallery({ product }: { product: Product }) {
   const [selected, setSelected] = useState(0);
   const reducedMotion = useReducedMotion();
+  const categorySlug =
+    typeof product.category === "object"
+      ? product.category.slug
+      : product.category;
   const images =
-    product.category === "celulares"
+    categorySlug === "celulares"
       ? [
           { src: product.imageUrl, label: "Vista principal" },
           {
