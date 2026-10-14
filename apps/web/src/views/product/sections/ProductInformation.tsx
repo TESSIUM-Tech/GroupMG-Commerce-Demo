@@ -40,16 +40,16 @@ export function ProductInformation({ product }: { product: Product }) {
 
   function addToCart() {
     try {
-      addCartItem(product.sku, color);
+      addCartItem(product.sku, color, 1, availableCount, product.priceMinor);
       setFailed(false);
-      setMessage(
-        "Agregado al carrito local de demostración. El checkout aún no está conectado.",
-      );
-    } catch {
+      setMessage("Agregado al carrito.");
+    } catch (err: unknown) {
       setFailed(true);
-      setMessage(
-        "No se pudo agregar el producto. Revisa las cantidades de tu carrito y el stock demo, o vuelve a intentarlo.",
-      );
+      const errMessage =
+        err instanceof Error
+          ? err.message
+          : "No se pudo agregar el producto. Revisa la disponibilidad.";
+      setMessage(errMessage);
     }
   }
 
