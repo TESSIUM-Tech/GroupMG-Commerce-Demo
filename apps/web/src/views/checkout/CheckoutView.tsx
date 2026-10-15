@@ -1,11 +1,16 @@
 "use client";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { readCart, type CartItem } from "../../services/cart-storage";
+import {
+  readCart,
+  clearCart,
+  type CartItem,
+} from "../../services/cart-storage";
 import {
   calculateOrder,
   saveDemoOrder,
+  buildIdempotencyKey,
   type DemoOrder,
 } from "../../services/demo-order";
 import { products } from "../index/data/products";
@@ -25,6 +30,9 @@ export function CheckoutView() {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
+  /** Prevents double-submission while navigation is in flight. */
+  const submitting = useRef(false);
+
   useEffect(() => {
     try {
       setError("");
@@ -38,10 +46,50 @@ export function CheckoutView() {
     }
     setReady(true);
   }, [attempt]);
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Block double-submission: if already submitting, ignore subsequent calls.
+    if (submitting.current) return;
+    submitting.current = true;
     try {
-      if (!items.length) return;
+      if (!items.length) {
+        submitting.current = false;
+        return;
+      }
+
+      // Validate minimum required fields from the form
+      const form = event.currentTarget;
+      const firstName = (
+        form.elements.namedItem("firstName") as HTMLInputElement
+      )?.value?.trim();
+      const lastName = (
+        form.elements.namedItem("lastName") as HTMLInputElement
+      )?.value?.trim();
+      const email = (
+        form.elements.namedItem("email") as HTMLInputElement
+      )?.value?.trim();
+      const phone = (
+        form.elements.namedItem("phone") as HTMLInputElement
+      )?.value?.trim();
+      const identification = (
+        form.elements.namedItem("identification") as HTMLInputElement
+      )?.value?.trim();
+
+      if (!firstName || !lastName || !email || !phone || !identification) {
+        setError("Completa todos los campos requeridos antes de continuar.");
+        submitting.current = false;
+        return;
+      }
+
+      // Basic e-mail format check
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setError("Ingresa un correo electrónico válido.");
+        submitting.current = false;
+        return;
+      }
+
+      // Stock validation against static demo catalogue
       const quantities = new Map<string, number>();
       for (const item of items)
         quantities.set(
@@ -58,10 +106,17 @@ export function CheckoutView() {
         setError(
           "Hay productos agotados o cantidades superiores al stock demo. Ajusta tu carrito para continuar.",
         );
+        submitting.current = false;
         return;
       }
+
+      // Build a stable idempotency key from the current cart snapshot so retries
+      // re-use the same key without creating duplicate orders.
+      const idempotencyKey = buildIdempotencyKey(items);
+
       saveDemoOrder({
         id: `DEMO-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        idempotencyKey,
         items,
         delivery,
         ...calculateOrder(items, delivery),
@@ -70,11 +125,13 @@ export function CheckoutView() {
       // Personal form data stays in memory and is not persisted or transmitted.
       router.push("/pago-pendiente");
     } catch {
+      submitting.current = false;
       setError(
         "No se pudo iniciar la demostración. Reintenta o vuelve al carrito.",
       );
     }
   }
+
   return (
     <div className={`container ${styles.page}`}>
       <Link className={styles.back} href="/carrito">

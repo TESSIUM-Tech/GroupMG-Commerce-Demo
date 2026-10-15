@@ -5,26 +5,93 @@ import { useRouter } from "next/navigation";
 import {
   readDemoOrder,
   saveDemoOrder,
+  clearDemoOrder,
   type DemoOrder,
+  type OrderStatus,
 } from "../../services/demo-order";
+import { clearCart } from "../../services/cart-storage";
 import { Button } from "../../components/ui/Button/Button";
 import { Alert } from "../../components/ui/Alert/Alert";
 import { PaymentSummary } from "./sections/PaymentSummary";
 import styles from "./PaymentView.module.css";
 import { StatePanel } from "../../components/ui/StatePanel/StatePanel";
 
-export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
+// ---------------------------------------------------------------------------
+// Status metadata — simulates what the backend would return
+// ---------------------------------------------------------------------------
+type StatusMeta = {
+  icon: string;
+  eyebrow: string;
+  heading: string;
+  body: string;
+  alertVariant: "info" | "success" | "error" | "warning";
+  alertTitle: string;
+  alertBody: string;
+};
+
+const STATUS_META: Record<OrderStatus, StatusMeta> = {
+  pending: {
+    icon: "◷",
+    eyebrow: "Tu selección está lista",
+    heading: "Pago pendiente",
+    body: "Estamos listos para el siguiente paso. En una compra real, aquí esperarías la verificación del proveedor sandbox.",
+    alertVariant: "info",
+    alertTitle: "Estado simulado — pendiente",
+    alertBody:
+      "No se ha procesado ningún pago, reservado inventario ni enviado una venta al ERP.",
+  },
+  confirmed: {
+    icon: "✓",
+    eyebrow: "Gracias por elegirnos",
+    heading: "¡Selección confirmada!",
+    body: "Completaste el recorrido de compra de demostración. Tu selección está resumida a continuación.",
+    alertVariant: "success",
+    alertTitle: "Confirmación simulada",
+    alertBody:
+      "No se ha procesado ningún pago, reservado inventario ni enviado una venta al ERP.",
+  },
+  rejected: {
+    icon: "✕",
+    eyebrow: "Algo salió mal",
+    heading: "Pago rechazado",
+    body: "El proveedor sandbox rechazó el intento de pago. Puedes intentarlo nuevamente o volver al checkout para revisar tu pedido.",
+    alertVariant: "error",
+    alertTitle: "Estado simulado — rechazado",
+    alertBody:
+      "En producción el proveedor devolvería un código de error. Tu carrito se conserva para que puedas reintentar.",
+  },
+  cancelled: {
+    icon: "○",
+    eyebrow: "Pago cancelado",
+    heading: "Cancelaste el pago",
+    body: "Cancelaste el proceso de pago. Tu carrito permanece intacto para que puedas continuar cuando quieras.",
+    alertVariant: "warning",
+    alertTitle: "Estado simulado — cancelado",
+    alertBody:
+      "El pedido no se procesó. Puedes retomar la compra o explorar el catálogo.",
+  },
+};
+
+// ---------------------------------------------------------------------------
+// PaymentView
+// ---------------------------------------------------------------------------
+export function PaymentView({ stage }: { stage: OrderStatus }) {
   const router = useRouter();
   const [order, setOrder] = useState<DemoOrder | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  // Simulate querying the backend for the current order status by reading
+  // sessionStorage (the demo's authoritative state store).
   useEffect(() => {
     try {
       setError("");
       setLoadFailed(false);
-      setOrder(readDemoOrder());
+      const loaded = readDemoOrder();
+      setOrder(loaded);
     } catch {
       setLoadFailed(true);
       setError(
@@ -33,18 +100,52 @@ export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
     }
     setReady(true);
   }, [attempt]);
-  function confirm() {
-    if (!order) return;
+
+  /** Simulate sandbox approval: update status → confirmed, clear cart. */
+  function confirmOrder() {
+    if (!order || confirming) return;
+    setConfirming(true);
     try {
-      saveDemoOrder({ ...order, status: "confirmed" });
+      const updated: DemoOrder = { ...order, status: "confirmed" };
+      saveDemoOrder(updated);
+      // Clear cart only when payment is confirmed (criterion 5).
+      clearCart();
       router.push("/confirmacion");
     } catch {
+      setConfirming(false);
       setError(
         "No se pudo guardar la confirmación. Puedes volver a intentarlo.",
       );
     }
   }
-  const matches = order?.status === stage;
+
+  /** Simulate sandbox rejection: update status → rejected, preserve cart. */
+  function rejectOrder() {
+    if (!order) return;
+    try {
+      saveDemoOrder({ ...order, status: "rejected" });
+      router.push("/pago-rechazado");
+    } catch {
+      setError("No se pudo simular el rechazo. Inténtalo de nuevo.");
+    }
+  }
+
+  /** Simulate user cancellation: update status → cancelled, preserve cart. */
+  function cancelOrder() {
+    if (!order) return;
+    try {
+      saveDemoOrder({ ...order, status: "cancelled" });
+      router.push("/pago-cancelado");
+    } catch {
+      setError("No se pudo simular la cancelación. Inténtalo de nuevo.");
+    }
+  }
+
+  // A redirect to /confirmacion does NOT prove payment — we read the stored
+  // status and only render the stage if it matches the current order status.
+  const statusMatches = order?.status === stage;
+  const meta = STATUS_META[stage];
+
   return (
     <div className={`container ${styles.page}`}>
       {error && (
@@ -54,7 +155,7 @@ export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
             <>
               <Button
                 onClick={() =>
-                  loadFailed ? setAttempt((value) => value + 1) : confirm()
+                  loadFailed ? setAttempt((v) => v + 1) : confirmOrder()
                 }
               >
                 Reintentar
@@ -66,14 +167,22 @@ export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
           {error}
         </Alert>
       )}
+
       {!ready ? (
-        <StatePanel kind="loading" title="Recuperando tu selección" />
-      ) : loadFailed ? null : !order || !matches ? (
+        <StatePanel kind="loading" title="Consultando estado del pedido" />
+      ) : loadFailed ? null : !order || !statusMatches ? (
+        // Status mismatch — guide the user to the correct state page
         <div className={styles.card}>
           <h1>
-            {order?.status === "confirmed"
-              ? "Tu demostración ya está confirmada"
-              : "No hay una confirmación disponible"}
+            {!order
+              ? "No hay un pedido activo"
+              : order.status === "confirmed"
+                ? "Tu demostración ya está confirmada"
+                : order.status === "rejected"
+                  ? "El pago fue rechazado"
+                  : order.status === "cancelled"
+                    ? "El pago fue cancelado"
+                    : "Consulta el estado de tu pedido"}
           </h1>
           <p>
             {!order
@@ -82,11 +191,15 @@ export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
           </p>
           <Link
             href={
-              order?.status === "confirmed"
-                ? "/confirmacion"
-                : order
-                  ? "/pago-pendiente"
-                  : "/checkout"
+              !order
+                ? "/checkout"
+                : order.status === "confirmed"
+                  ? "/confirmacion"
+                  : order.status === "rejected"
+                    ? "/pago-rechazado"
+                    : order.status === "cancelled"
+                      ? "/pago-cancelado"
+                      : "/pago-pendiente"
             }
           >
             Continuar →
@@ -94,54 +207,59 @@ export function PaymentView({ stage }: { stage: "pending" | "confirmed" }) {
         </div>
       ) : (
         <>
-          <p className="eyebrow">
-            {stage === "pending"
-              ? "Tu selección está lista"
-              : "Gracias por elegirnos"}
-          </p>
+          <p className="eyebrow">{meta.eyebrow}</p>
           <div className={styles.layout}>
             <section className={styles.card}>
               <span className={styles.icon} aria-hidden="true">
-                {stage === "pending" ? "◷" : "✓"}
+                {meta.icon}
               </span>
-              <h1>
-                {stage === "pending"
-                  ? "Pago pendiente"
-                  : "¡Selección confirmada!"}
-              </h1>
-              <p>
-                {stage === "pending"
-                  ? "Estamos listos para el siguiente paso. En una compra real, aquí esperarías la verificación del proveedor."
-                  : "Completaste el recorrido de compra de demostración. Tu selección está resumida a continuación."}
-              </p>
-              <Alert
-                variant={stage === "pending" ? "info" : "success"}
-                title={
-                  stage === "pending"
-                    ? "Estado simulado"
-                    : "Confirmación simulada"
-                }
-              >
-                No se ha procesado ningún pago, reservado inventario ni enviado
-                una venta al ERP.
+              <h1>{meta.heading}</h1>
+              <p>{meta.body}</p>
+              <Alert variant={meta.alertVariant} title={meta.alertTitle}>
+                {meta.alertBody}
               </Alert>
-              {stage === "pending" ? (
+
+              {/* Actions per status */}
+              {stage === "pending" && (
                 <div className={styles.actions}>
-                  <Button onClick={confirm}>Simular aprobación →</Button>
-                  <Link href="/checkout">Volver y revisar datos</Link>
+                  <Button onClick={confirmOrder} disabled={confirming}>
+                    {confirming ? "Procesando…" : "Simular aprobación →"}
+                  </Button>
+                  <Button onClick={rejectOrder} variant="secondary">
+                    Simular rechazo
+                  </Button>
+                  <Button onClick={cancelOrder} variant="secondary">
+                    Simular cancelación
+                  </Button>
                 </div>
-              ) : (
+              )}
+
+              {stage === "confirmed" && (
                 <div className={styles.actions}>
                   <Link className={styles.primary} href="/catalogo">
                     Seguir explorando ↗
                   </Link>
+                </div>
+              )}
+
+              {(stage === "rejected" || stage === "cancelled") && (
+                <div className={styles.actions}>
+                  <Link className={styles.primary} href="/checkout">
+                    Reintentar compra →
+                  </Link>
                   <Link href="/carrito">Ver mi carrito</Link>
                 </div>
               )}
+
               <p className={styles.note}>
-                {stage === "pending"
-                  ? "No cierres esta pestaña si quieres conservar el estado demo de la sesión."
-                  : "Comprobante de demostración, sin validez fiscal. El carrito se conserva para seguir probando."}
+                {stage === "pending" &&
+                  "No cierres esta pestaña si quieres conservar el estado demo de la sesión."}
+                {stage === "confirmed" &&
+                  "Comprobante de demostración, sin validez fiscal. El carrito fue vaciado al confirmar."}
+                {stage === "rejected" &&
+                  "Tu carrito se conserva. Puedes reintentar cuando quieras."}
+                {stage === "cancelled" &&
+                  "Tu carrito permanece intacto. Retoma la compra cuando lo desees."}
               </p>
             </section>
             <PaymentSummary order={order} />
