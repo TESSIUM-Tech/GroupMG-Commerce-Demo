@@ -132,12 +132,20 @@ describe("DEMO-10: Recorrido de compra completo", () => {
   it("2. La clave idempotente es estable: mismos ítems → misma clave", () => {
     const key1 = buildIdempotencyKey(SAMPLE_ITEMS);
     const key2 = buildIdempotencyKey([...SAMPLE_ITEMS].reverse()); // orden diferente
-    assert.equal(key1, key2, "La clave no debe depender del orden de los ítems");
+    assert.equal(
+      key1,
+      key2,
+      "La clave no debe depender del orden de los ítems",
+    );
   });
 
   it("3. Estado confirmed: carrito se vacía", () => {
     saveCart(SAMPLE_ITEMS);
-    assert.equal(readCart().length, 2, "El carrito debe tener 2 productos antes");
+    assert.equal(
+      readCart().length,
+      2,
+      "El carrito debe tener 2 productos antes",
+    );
     const order = makeOrder();
     saveDemoOrder(order);
     // Simular confirmación
@@ -154,7 +162,11 @@ describe("DEMO-10: Recorrido de compra completo", () => {
     // Simular rechazo
     saveDemoOrder({ ...order, status: "rejected" });
     // El carrito NO se limpia
-    assert.equal(readCart().length, 2, "El carrito debe conservarse al rechazar");
+    assert.equal(
+      readCart().length,
+      2,
+      "El carrito debe conservarse al rechazar",
+    );
     assert.equal(readDemoOrder().status, "rejected");
   });
 
@@ -164,7 +176,11 @@ describe("DEMO-10: Recorrido de compra completo", () => {
     saveDemoOrder(order);
     // Simular cancelación
     saveDemoOrder({ ...order, status: "cancelled" });
-    assert.equal(readCart().length, 2, "El carrito debe conservarse al cancelar");
+    assert.equal(
+      readCart().length,
+      2,
+      "El carrito debe conservarse al cancelar",
+    );
     assert.equal(readDemoOrder().status, "cancelled");
   });
 
