@@ -8,6 +8,8 @@ require("dotenv").config({
 });
 // Simulated provider for the HTTP path; never reaches PayPhone.
 const SECRET = "c".repeat(40);
+// The outbox relay would publish (and mark) events these tests inspect.
+delete process.env.RABBITMQ_URL;
 process.env.PAYMENTS_MODE = "simulated";
 process.env.PAYMENTS_SIMULATED_OUTCOME = "approved";
 process.env.PAYMENTS_CALLBACK_SECRET = SECRET;
