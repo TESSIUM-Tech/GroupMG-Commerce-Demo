@@ -35,6 +35,8 @@ services:
       PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
       PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
       PAYPHONE_RESPONSE_URL: ${PAYPHONE_RESPONSE_URL:-}
+      # Outbox -> RabbitMQ (DEMO-12): opcional; sin ella el outbox espera en PostgreSQL.
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
     depends_on:
       postgres: { condition: service_healthy }
   worker-erp:
@@ -44,6 +46,15 @@ services:
       args: { WORKSPACE: "@groupmg/worker-erp" }
     profiles: [app]
     networks: [data, integration]
+    environment:
+      # Exportación de ventas (DEMO-12): sin adaptador ERP (DEMO-11) el worker
+      # no consume y las ventas esperan en la cola erp.sales.v1.
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
+      ERP_ADAPTER: ${ERP_ADAPTER:-none}
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
   postgres:
     image: postgres:17-bookworm
     environment:
