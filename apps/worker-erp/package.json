@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test:unit": "node --test test/worker-unit.test.cjs",
     "test:db": "node --test test/export-sale.test.cjs",
-    "test:messaging": "node --test test/erp-sales-consumer.test.cjs"
+    "test:messaging": "node --test --test-concurrency=1 test/erp-sales-consumer.test.cjs test/dead-letter.test.cjs"
   },
   "dependencies": {
     "@groupmg/contracts": "workspace:*",
