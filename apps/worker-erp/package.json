@@ -8,7 +8,8 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test:unit": "node --test test/worker-unit.test.cjs",
-    "test:db": "node --test test/export-sale.test.cjs"
+    "test:db": "node --test test/export-sale.test.cjs",
+    "test:messaging": "node --test test/erp-sales-consumer.test.cjs"
   },
   "dependencies": {
     "@groupmg/contracts": "workspace:*",
