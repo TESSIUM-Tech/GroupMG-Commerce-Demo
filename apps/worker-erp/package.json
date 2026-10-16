@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --test test/worker-unit.test.cjs"
+    "test:unit": "node --test test/worker-unit.test.cjs",
+    "test:db": "node --test test/export-sale.test.cjs"
   },
   "dependencies": {
     "@groupmg/contracts": "workspace:*",
