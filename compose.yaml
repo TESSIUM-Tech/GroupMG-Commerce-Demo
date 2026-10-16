@@ -77,7 +77,8 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Configurar clave RabbitMQ}
     ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
     volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
-    networks: [data]
+    # local-broker publica 5672/15672 en 127.0.0.1 (data es interna), como local-db.
+    networks: [data, local-broker]
     healthcheck:
       test: [CMD, rabbitmq-diagnostics, -q, ping]
       interval: 10s
@@ -89,6 +90,7 @@ networks:
     internal: true
   integration:
   local-db:
+  local-broker:
 volumes:
   postgres-data:
   redis-data:
