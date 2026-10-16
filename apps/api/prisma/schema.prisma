@@ -226,3 +226,25 @@ model ShippingRate {
   @@unique([zone, version])
   @@index([zone, validFrom])
 }
+
+enum ErpExportStatus {
+  processing
+  exported
+  failed
+}
+
+/// Written by worker-erp only (DEMO-12): one row per order.confirmed.v1 event.
+/// No FK to Order on purpose: the worker depends on the event contract only.
+model ErpSaleExport {
+  eventId      String          @id @db.Uuid
+  orderId      String          @unique @db.Uuid
+  status       ErpExportStatus @default(processing)
+  attempts     Int             @default(0)
+  erpReference String?
+  lastError    String?
+  createdAt    DateTime        @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime        @default(now()) @updatedAt @db.Timestamptz(3)
+  exportedAt   DateTime?       @db.Timestamptz(3)
+
+  @@index([status, updatedAt])
+}
