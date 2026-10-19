@@ -1,0 +1,22 @@
+{
+  "name": "@groupmg/erp-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "seed": "node dist/demo/manage.js seed",
+    "reset": "node dist/demo/manage.js reset",
+    "test": "node --test test/*.test.cjs",
+    "test:db": "node --test test/persistence.test.cjs"
+  },
+  "dependencies": {
+    "dotenv": "17.2.3",
+    "pg": "^8.16.3",
+    "swagger-ui-dist": "^5.32.13"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5"
+  }
+}

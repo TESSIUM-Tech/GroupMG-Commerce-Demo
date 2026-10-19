@@ -6,6 +6,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY apps/worker-erp/package.json apps/worker-erp/package.json
+COPY apps/erp-simulator/package.json apps/erp-simulator/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 RUN corepack prepare pnpm@12.5.1 --activate
 
