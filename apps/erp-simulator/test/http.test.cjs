@@ -30,13 +30,11 @@ function fixtureStore() {
         (s) => !after || s > after,
       );
       return {
-        records: items
-          .slice(0, limit)
-          .map((product_code) => ({
-            product_code,
-            quantity_available: 3,
-            modified_at: "2026-01-01T00:00:00Z",
-          })),
+        records: items.slice(0, limit).map((product_code) => ({
+          product_code,
+          quantity_available: 3,
+          modified_at: "2026-01-01T00:00:00Z",
+        })),
         next_cursor:
           items.length > limit
             ? Buffer.from(items[limit - 1]).toString("base64url")
