@@ -6,6 +6,9 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "erp:seed": "pnpm --filter @groupmg/erp-simulator seed",
+    "erp:reset": "pnpm --filter @groupmg/erp-simulator reset --confirm-erp-demo-reset",
+    "test:erp": "pnpm --filter @groupmg/erp-simulator test",
     "dev:web": "pnpm --filter @groupmg/web dev",
     "dev:api": "pnpm --filter @groupmg/api dev",
     "dev:worker": "pnpm --filter @groupmg/worker-erp dev",
