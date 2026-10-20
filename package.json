@@ -24,7 +24,9 @@
     "db:status": "pnpm --filter @groupmg/api run db:status",
     "test:db": "pnpm --filter @groupmg/api run test:db",
     "test:api": "pnpm --filter @groupmg/api run test:api",
-    "test": "pnpm --filter @groupmg/api run test"
+    "test": "pnpm --filter @groupmg/api run test",
+    "test:worker": "pnpm --filter @groupmg/worker-erp run test",
+    "test:messaging": "pnpm --filter @groupmg/api run test:messaging && pnpm --filter @groupmg/worker-erp run test:messaging"
   },
   "devDependencies": {
     "prettier": "3.9.9",

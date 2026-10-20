@@ -5,6 +5,7 @@ import { CatalogModule } from "./modules/catalog/catalog.module";
 import { OrdersModule } from "./modules/orders/orders.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { MessagingModule } from "./messaging/messaging.module";
 import { CorrelationIdMiddleware } from "./common/middleware/correlation-id.middleware";
 import { RequestLoggerMiddleware } from "./common/middleware/request-logger.middleware";
 
@@ -15,6 +16,7 @@ import { RequestLoggerMiddleware } from "./common/middleware/request-logger.midd
     OrdersModule,
     AuthModule,
     PaymentsModule,
+    MessagingModule,
   ],
   controllers: [HealthController],
 })

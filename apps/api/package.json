@@ -20,7 +20,8 @@
     "test:orders": "node --test test/orders.test.cjs",
     "test:payments:unit": "node --test test/payments-unit.test.cjs test/payments-provider-unit.test.cjs test/payments-sale-unit.test.cjs",
     "test:payments": "node --test --test-concurrency=1 test/payments.test.cjs test/payments-callback.test.cjs test/payments-reconcile.test.cjs",
-    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs test/orders-unit.test.cjs test/orders.test.cjs test/payments-unit.test.cjs test/payments-provider-unit.test.cjs test/payments-sale-unit.test.cjs test/payments.test.cjs test/payments-callback.test.cjs test/payments-reconcile.test.cjs"
+    "test:messaging": "node --test --test-concurrency=1 test/messaging-topology.test.cjs test/outbox-publisher.test.cjs",
+    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs test/orders-unit.test.cjs test/orders.test.cjs test/payments-unit.test.cjs test/payments-provider-unit.test.cjs test/payments-sale-unit.test.cjs test/payments.test.cjs test/payments-callback.test.cjs test/payments-reconcile.test.cjs test/messaging-unit.test.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
@@ -29,6 +30,7 @@
     "@nestjs/swagger": "^11.4.7",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "amqplib": "^2.2.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "dotenv": "17.2.3",

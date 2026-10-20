@@ -9,6 +9,8 @@ require("dotenv").config({
 // Payments disabled for the app itself: this file drives the use cases with
 // its own fake PayPhone, so no background job touches the test data.
 process.env.PAYMENTS_MODE = "disabled";
+// The outbox relay would publish (and mark) events these tests inspect.
+delete process.env.RABBITMQ_URL;
 require("reflect-metadata");
 const { NestFactory } = require("@nestjs/core");
 const { ValidationPipe } = require("@nestjs/common");
