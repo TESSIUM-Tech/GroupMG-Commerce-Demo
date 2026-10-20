@@ -20,7 +20,7 @@ const {
   ErpSaleExportRepository,
 } = require("../dist/exports/erp-sale-export.repository");
 const { ExportSaleUseCase } = require("../dist/exports/export-sale.use-case");
-const { ErpUnavailableError } = require("../dist/ports/erp-errors");
+const { ErpUnavailableError } = require("../dist/ports/erp.errors");
 
 if (
   process.env.ALLOW_DB_TESTS !== "true" ||

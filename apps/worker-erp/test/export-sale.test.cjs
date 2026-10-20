@@ -8,8 +8,10 @@ const {
 const { ExportSaleUseCase } = require("../dist/exports/export-sale.use-case");
 const {
   ErpUnavailableError,
-  ErpRejectedError,
-} = require("../dist/ports/erp-errors");
+  ErpRequestError,
+  ErpConflictError,
+  ErpContractError,
+} = require("../dist/ports/erp.errors");
 
 if (
   process.env.ALLOW_DB_TESTS !== "true" ||
@@ -38,7 +40,12 @@ function fakeErp() {
       this.calls += 1;
       const step = this.script.shift();
       if (step === "down") throw new ErpUnavailableError("ERP timeout");
-      if (step === "reject") throw new ErpRejectedError("unknown SKU in ERP");
+      if (step === "reject")
+        throw new ErpRequestError("ERP rejected request (422)");
+      if (step === "conflict")
+        throw new ErpConflictError("ERP reference or idempotency conflict");
+      if (step === "contract")
+        throw new ErpContractError("Invalid ERP sale response");
       if (!sales.has(idempotencyKey)) {
         sales.set(idempotencyKey, {
           ...sale,
@@ -218,6 +225,28 @@ describe("Export confirmed sales to the ERP", () => {
     assert.equal(decision.action, "dead_letter");
     assert.match(decision.reason, /erp_rejected/);
     assert.equal((await row(event.eventId)).status, "failed");
+  });
+
+  test("DEMO-11 errors: a 409 conflict dead-letters, an unreadable response is retried", async () => {
+    const erp = fakeErp();
+    erp.script = ["conflict"];
+    const conflicted = track(saleEvent());
+    const conflict = await exporter(erp).execute(message(conflicted, 1));
+    assert.equal(conflict.action, "dead_letter");
+    assert.match(conflict.reason, /conflict/);
+    assert.equal((await row(conflicted.eventId)).status, "failed");
+
+    erp.script = ["contract"];
+    const garbled = track(saleEvent());
+    assert.equal(
+      (await exporter(erp).execute(message(garbled, 1))).action,
+      "retry",
+    );
+    assert.equal(
+      (await exporter(erp).execute(message(garbled, 2))).action,
+      "ack",
+    );
+    assert.equal((await row(garbled.eventId)).status, "exported");
   });
 
   test("malformed or mismatched messages never reach the ERP", async () => {

@@ -47,14 +47,60 @@ services:
     profiles: [app]
     networks: [data, integration]
     environment:
-      # Exportación de ventas (DEMO-12): sin adaptador ERP (DEMO-11) el worker
-      # no consume y las ventas esperan en la cola erp.sales.v1.
+      # Adaptador ERP (DEMO-11). ERP_ADAPTER=none desactiva la exportación.
+      ERP_ADAPTER: ${ERP_ADAPTER:-simulated}
+      ERP_BASE_URL: http://erp-simulator:3003
+      ERP_TIMEOUT_MS: ${ERP_TIMEOUT_MS:-3000}
+      ERP_PAGE_SIZE: ${ERP_PAGE_SIZE:-20}
+      # Exportación de ventas (DEMO-12): sin RabbitMQ el worker no consume y
+      # las ventas esperan en la cola erp.sales.v1.
       DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
-      ERP_ADAPTER: ${ERP_ADAPTER:-none}
     depends_on:
+      erp-simulator: { condition: service_healthy }
       postgres: { condition: service_healthy }
       rabbitmq: { condition: service_healthy }
+  erp-simulator:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      args: { WORKSPACE: "@groupmg/erp-simulator" }
+    profiles: [app, erp-demo]
+    networks: [integration, erp-data]
+    environment:
+      ERP_DATABASE_URL: postgresql://erp_demo:${ERP_POSTGRES_PASSWORD:-erp-local-change-me}@erp-postgres:5432/erp_demo
+      ERP_ENV: ${ERP_ENV:-demo}
+      ERP_PORT: "3003"
+      ERP_DEMO_SCENARIO: ${ERP_DEMO_SCENARIO:-normal}
+      ERP_DEMO_LATENCY_MS: ${ERP_DEMO_LATENCY_MS:-0}
+      ERP_DEMO_TIMEOUT_MS: ${ERP_DEMO_TIMEOUT_MS:-10000}
+    depends_on:
+      erp-postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  erp-postgres:
+    image: postgres:17-bookworm
+    profiles: [app, erp-demo]
+    networks: [erp-data]
+    environment:
+      POSTGRES_USER: erp_demo
+      POSTGRES_PASSWORD: ${ERP_POSTGRES_PASSWORD:-erp-local-change-me}
+      POSTGRES_DB: erp_demo
+    volumes: ["erp-postgres-data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U erp_demo -d erp_demo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
   postgres:
     image: postgres:17-bookworm
     environment:
@@ -96,6 +142,8 @@ services:
       timeout: 5s
       retries: 10
 networks:
+  erp-data:
+    internal: true
   edge:
   data:
     internal: true
@@ -103,6 +151,7 @@ networks:
   local-db:
   local-broker:
 volumes:
+  erp-postgres-data:
   postgres-data:
   redis-data:
   rabbitmq-data:

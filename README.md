@@ -314,6 +314,14 @@ Los criterios de aceptación y las decisiones pendientes se detallan en el
 [roadmap](docs/roadmap.md). El primer incremento recomendado es
 **PostgreSQL → catálogo en NestJS → listado en Next.js**.
 
+## ERP ficticio
+
+Simulador HTTP persistente y adaptador detrás de `ErpPort`: [contrato, Compose, fallos demo, reset y pruebas](docs/erp-simulator.md).
+
+Swagger del ERP: http://localhost:3003/docs y OpenAPI JSON: http://localhost:3003/openapi.json. Para acceso desde el equipo, iniciar con el override `infra/docker/compose.erp-local.yaml`.
+
+El ERP usa su propia base `erp_demo`; no modifica la base commerce. La importación programada y el consumidor de ventas quedan como siguientes integraciones del worker.
+
 ## Persistencia DEMO-02
 
 PostgreSQL y Prisma: [migraciones, seed, estados y pruebas](docs/persistence.md).

@@ -1,6 +1,6 @@
 import { validateOrderConfirmedV1 } from "../contracts/order-confirmed";
 import type { OrderConfirmedV1 } from "../contracts/order-confirmed";
-import { ErpRejectedError } from "../ports/erp-errors";
+import { ErpConflictError, ErpRequestError } from "../ports/erp.errors";
 import type { ErpPort } from "../ports/erp.port";
 import type { ErpSaleExportRepository } from "./erp-sale-export.repository";
 
@@ -80,7 +80,12 @@ export class ExportSaleUseCase {
       return { action: "ack", reason: "exported" };
     } catch (error) {
       const message = error instanceof Error ? error.message : "ERP error";
-      if (error instanceof ErpRejectedError) {
+      // Permanent per docs/erp-simulator.md: a retry would get the same answer.
+      // ErpUnavailableError and ErpContractError (bad response) are retried.
+      if (
+        error instanceof ErpRequestError ||
+        error instanceof ErpConflictError
+      ) {
         await this.repository.markFailed(sale.eventId, message);
         return { action: "dead_letter", reason: `erp_rejected: ${message}` };
       }

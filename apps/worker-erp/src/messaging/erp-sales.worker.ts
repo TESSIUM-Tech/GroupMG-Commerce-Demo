@@ -9,7 +9,7 @@ import { Pool } from "pg";
 import { WORKER_CONFIG, type WorkerConfig } from "../config/worker.config";
 import { ErpSaleExportRepository } from "../exports/erp-sale-export.repository";
 import { ExportSaleUseCase } from "../exports/export-sale.use-case";
-import { createErpAdapter } from "../ports/erp-adapters";
+import { ERP_PORT, type ErpPort } from "../ports/erp.port";
 import { ErpSalesConsumer } from "./erp-sales.consumer";
 import { ERP_SALES_TOPOLOGY } from "./rabbitmq-topology";
 
@@ -22,10 +22,13 @@ export class ErpSalesWorker
   private pool?: Pool;
   private consumer?: ErpSalesConsumer;
 
-  constructor(@Inject(WORKER_CONFIG) private readonly config: WorkerConfig) {}
+  constructor(
+    @Inject(WORKER_CONFIG) private readonly config: WorkerConfig,
+    @Inject(ERP_PORT) private readonly erp: ErpPort | null,
+  ) {}
 
   onApplicationBootstrap(): void {
-    const erp = createErpAdapter(this.config.erpAdapter);
+    const { erp } = this;
     const missing = [
       !this.config.databaseUrl && "DATABASE_URL",
       !this.config.rabbitmqUrl && "RABBITMQ_URL",

@@ -39,15 +39,17 @@ Un mensaje a la vez (`prefetch 1`). Valida `order.confirmed.v1` en runtime y exi
 `202610150001_erp_sale_export`, escrita solo por el worker, sin FK a `Order`) y llama a
 `ErpPort.postSale(venta, idempotencyKey = eventId)`.
 
-| Resultado                                  | Acción                                               |
-| ------------------------------------------ | ---------------------------------------------------- |
-| Exportada                                  | `exported` + referencia ERP, después **ack**         |
-| Mismo `eventId` ya exportado               | ack sin llamar al ERP (duplicado)                    |
-| ERP caído/timeout (`ErpUnavailableError`)  | nack → reintento; en el 5.º intento → DLQ y `failed` |
-| ERP rechaza (`ErpRejectedError`)           | DLQ y `failed`, sin reintentos                       |
-| JSON/evento inválido, `messageId` distinto | DLQ, el ERP no se llama                              |
-| Otro evento para un pedido ya exportado    | DLQ (nunca dos ventas del mismo pedido)              |
-| Base de datos caída u otro error           | nack: nunca ack sin resultado persistido             |
+| Resultado                                   | Acción                                               |
+| ------------------------------------------- | ---------------------------------------------------- |
+| Exportada                                   | `exported` + referencia ERP, después **ack**         |
+| Mismo `eventId` ya exportado                | ack sin llamar al ERP (duplicado)                    |
+| ERP caído/timeout (`ErpUnavailableError`)   | nack → reintento; en el 5.º intento → DLQ y `failed` |
+| Respuesta ERP inválida (`ErpContractError`) | nack → reintento; en el 5.º intento → DLQ y `failed` |
+| ERP rechaza (`ErpRequestError`)             | DLQ y `failed`, sin reintentos                       |
+| Conflicto 409 (`ErpConflictError`)          | DLQ y `failed`, sin reintentos                       |
+| JSON/evento inválido, `messageId` distinto  | DLQ, el ERP no se llama                              |
+| Otro evento para un pedido ya exportado     | DLQ (nunca dos ventas del mismo pedido)              |
+| Base de datos caída u otro error            | nack: nunca ack sin resultado persistido             |
 
 La copia a la DLQ conserva cuerpo y propiedades y añade `x-dlq-reason`, `x-dlq-at`,
 `x-dlq-delivery-count` y `x-original-queue`; el original se confirma (ack) solo después del
@@ -57,12 +59,13 @@ RabbitMQ.
 
 ## Configuración
 
-| Variable              | Dónde       | Uso                                                            |
-| --------------------- | ----------- | -------------------------------------------------------------- |
-| `RABBITMQ_URL`        | API, worker | `amqp://` local; vacío = mensajería inactiva                   |
-| `RABBITMQ_URL_DOCKER` | Compose     | Misma URL con host `rabbitmq`                                  |
-| `DATABASE_URL`        | worker      | Registros `ErpSaleExport`                                      |
-| `ERP_ADAPTER`         | worker      | `none` (por defecto): no consume; DEMO-11 añadirá el simulador |
+| Variable              | Dónde       | Uso                                                     |
+| --------------------- | ----------- | ------------------------------------------------------- |
+| `RABBITMQ_URL`        | API, worker | `amqp://` local; vacío = mensajería inactiva            |
+| `RABBITMQ_URL_DOCKER` | Compose     | Misma URL con host `rabbitmq`                           |
+| `DATABASE_URL`        | worker      | Registros `ErpSaleExport`                               |
+| `ERP_ADAPTER`         | worker      | `simulated` (por defecto, DEMO-11) o `none`: no exporta |
+| `ERP_BASE_URL`        | worker      | Simulador ERP; ver `docs/erp-simulator.md`              |
 
 Las URLs se validan pero nunca se imprimen (llevan credenciales).
 
@@ -73,8 +76,11 @@ docker compose up -d --wait postgres rabbitmq
 pnpm db:migrate
 pnpm build
 pnpm --filter @groupmg/api start       # publica el outbox
-pnpm --filter @groupmg/worker-erp start # sin ERP_ADAPTER queda en espera
+pnpm --filter @groupmg/worker-erp start # exporta al simulador ERP_BASE_URL
 ```
+
+Sin el simulador en marcha las ventas se reintentan y acaban en la DLQ; con
+`ERP_ADAPTER=none` el worker no consume y esperan en `erp.sales.v1`.
 
 Con Docker: `docker compose --profile app up --build -d`. RabbitMQ Management en
 http://localhost:15672 (credenciales `RABBITMQ_DEFAULT_*`). RabbitMQ está en la red
@@ -115,12 +121,13 @@ DLQ), reentrega sin venta duplicada (worker que muere a mitad y duplicados simul
 Reinicio real del contenedor: `ALLOW_BROKER_RESTART_TESTS=true pnpm test:messaging`
 (ejecuta `docker compose stop/up rabbitmq`; no se usa en CI).
 
-## Para DEMO-11 (simulador ERP)
+## Integración con el simulador ERP (DEMO-11)
 
-- Implementar `ErpPort` (`apps/worker-erp/src/ports/erp.port.ts`), registrarlo en
-  `ports/erp-adapters.ts` y añadir su nombre a `ErpAdapterName` en `config/worker.config.ts`.
-- Lanzar `ErpUnavailableError` (reintentar) o `ErpRejectedError` (DLQ) de `ports/erp-errors.ts`.
-- `postSale` debe ser idempotente por `idempotencyKey` (= `eventId`).
+El consumidor usa el `ErpPort` que `AppModule` enlaza al token `ERP_PORT`
+(`SimulatedErpAdapter`, `docs/erp-simulator.md`); `ERP_ADAPTER=none` lo deja en `null` y el
+worker no consume. La venta se envía con `Idempotency-Key = eventId` y `reference = orderId`:
+el simulador devuelve el mismo `sale_id` al repetir, así una respuesta perdida no duplica
+la venta. Otro adaptador debe lanzar los errores de `ports/erp.errors.ts`.
 
 ## Problemas conocidos en local
 
@@ -131,5 +138,5 @@ Reinicio real del contenedor: `ALLOW_BROKER_RESTART_TESTS=true pnpm test:messagi
 
 ## Fuera de alcance
 
-Adaptador ERP real o simulado (DEMO-11), sincronización de inventario (DEMO-13), alta
+Adaptador ERP de producción, sincronización de inventario (DEMO-13), alta
 disponibilidad de RabbitMQ y métricas de colas.

@@ -10,7 +10,7 @@
     "test:unit": "node --test test/worker-unit.test.cjs",
     "test:db": "node --test test/export-sale.test.cjs",
     "test:messaging": "node --test --test-concurrency=1 test/erp-sales-consumer.test.cjs test/dead-letter.test.cjs test/e2e-sale-export.test.cjs",
-    "test": "node --test --test-concurrency=1 test/worker-unit.test.cjs test/export-sale.test.cjs"
+    "test": "node --test --test-concurrency=1 test/worker-unit.test.cjs test/simulated-erp.test.cjs test/export-sale.test.cjs"
   },
   "dependencies": {
     "@groupmg/contracts": "workspace:*",

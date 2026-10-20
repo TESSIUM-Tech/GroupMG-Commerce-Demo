@@ -1,0 +1,9 @@
+# Opcional: acceso local a los servicios demo, nunca en interfaces públicas.
+services:
+  erp-simulator:
+    ports: ["127.0.0.1:3003:3003"]
+  erp-postgres:
+    ports: ["127.0.0.1:5433:5432"]
+    networks: [erp-data, erp-local]
+networks:
+  erp-local:

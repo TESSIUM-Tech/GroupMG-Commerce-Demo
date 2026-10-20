@@ -33,17 +33,27 @@ test("the worker topology is the same one the API declares", () => {
   assert.deepEqual(ERP_SALES_TOPOLOGY, api.ERP_SALES_TOPOLOGY);
 });
 
-test("without broker, database or ERP adapter the worker stays idle", () => {
+test("the simulated ERP (DEMO-11) is the default adapter; none opts out", () => {
   assert.deepEqual(loadWorkerConfig({}), {
     databaseUrl: null,
     rabbitmqUrl: null,
-    erpAdapter: "none",
+    erpAdapter: "simulated",
+    erpBaseUrl: "http://127.0.0.1:3003",
+    erpTimeoutMs: 3000,
+    erpPageSize: 20,
   });
   const config = loadWorkerConfig({
     DATABASE_URL: "postgresql://u:p@127.0.0.1:5432/db",
     RABBITMQ_URL: "amqp://u:p@127.0.0.1:5672",
+    ERP_ADAPTER: "none",
+    ERP_BASE_URL: "http://erp-simulator:3003",
+    ERP_TIMEOUT_MS: "5000",
+    ERP_PAGE_SIZE: "50",
   });
   assert.equal(config.erpAdapter, "none");
+  assert.equal(config.erpBaseUrl, "http://erp-simulator:3003");
+  assert.equal(config.erpTimeoutMs, 5000);
+  assert.equal(config.erpPageSize, 50);
 });
 
 test("invalid worker configuration names the variable, never its value", () => {
