@@ -369,11 +369,13 @@ Issue publicado: [#16](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Documentar arranque desde un clon limpio, productos de ejemplo y escenarios de pago de prueba.
-- [ ] Preparar un guion de compra exitosa y otro de caída/recuperación ERP con evidencia de ausencia de duplicados.
-- [ ] Incluir checklist previo: servicios listos, seed, conectividad, webhook y estado de colas.
-- [ ] Actualizar README/diagramas para distinguir implementación real, simulador y pendientes.
-- [ ] Registrar limitaciones de la demo y un procedimiento de recuperación sin borrar datos por sorpresa.
+- [x] Documentar arranque desde un clon limpio, productos de ejemplo y escenarios de pago de prueba.
+- [x] Preparar un guion de compra exitosa y otro de caída/recuperación ERP con evidencia de ausencia de duplicados.
+- [x] Incluir checklist previo: servicios listos, seed, conectividad, webhook y estado de colas.
+- [x] Actualizar README/diagramas para distinguir implementación real, simulador y pendientes.
+- [x] Registrar limitaciones de la demo y un procedimiento de recuperación sin borrar datos por sorpresa.
+
+Evidencia local: [presentation-guide.md](presentation-guide.md). Documento integral que cubre el arranque paso a paso desde un clon limpio con lockfile congelado (`pnpm install --frozen-lockfile`), tabla de productos demo y casos de pago (simulado y sandbox PayPhone), checklist exhaustivo de pre-flight (puertos loopback, readiness real, seed y smoke test), guion narrativo de compra feliz con trazabilidad de eventos y guion de caída/recuperación del simulador ERP demostrando retención en colas RabbitMQ y cero ventas duplicadas mediante idempotencia. Actualización del `README.md` distinguiendo componentes implementados, simulador HTTP aislado y backlog opcional post-demo.
 
 ### DEMO-17 — Añadir cuentas de clientes e historial privado (opcional)
 
