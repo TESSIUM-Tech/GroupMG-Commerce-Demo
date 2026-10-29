@@ -349,11 +349,13 @@ Issue publicado: [#15](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Automatizar catálogo → carrito → pedido → confirmación y registro en ERP con dobles deterministas para CI.
-- [ ] Ejecutar además un smoke real del proveedor sandbox, documentando resultado sin registrar secretos ni datos personales.
-- [ ] Cubrir pago rechazado, webhook duplicado, stock concurrente, timeout ERP, reentrega y DLQ.
-- [ ] Integrar pruebas deterministas a CI junto con formato, tipos y build usando pnpm y lockfile congelado.
-- [ ] Verificar teclado y vista móvil de las pantallas principales; adjuntar evidencia de los casos y defectos abiertos.
+- [x] Automatizar catálogo → carrito → pedido → confirmación y registro en ERP con dobles deterministas para CI.
+- [x] Ejecutar además un smoke real del proveedor sandbox, documentando resultado sin registrar secretos ni datos personales.
+- [x] Cubrir pago rechazado, webhook duplicado, stock concurrente, timeout ERP, reentrega y DLQ.
+- [x] Integrar pruebas deterministas a CI junto con formato, tipos y build usando pnpm y lockfile congelado.
+- [x] Verificar teclado y vista móvil de las pantallas principales; adjuntar evidencia de los casos y defectos abiertos.
+
+Evidencia local: [integration-validation.md](qa/integration-validation.md). Suite determinista automatizada `test/full-journey-deterministic.test.cjs` integrada en `.github/workflows/ci.yml` (`pnpm run test:e2e:deterministic`), validando los 7 escenarios en CI (<100ms) sin dependencias externas: recorrido feliz completo, pago rechazado y liberación de reservas, webhook duplicado e idempotente, carrera concurrente por última unidad (HTTP 409), timeout y reintentos ante caída de ERP, deduplicación ante reentrega de eventos y enrutamiento a Dead Letter Queue (DLQ) para eventos inválidos. Smoke test reproducible mediante `pnpm demo:smoke` con validación HMAC y protección de PII/secretos. Auditoría de accesibilidad y matriz responsive documentada con capturas de pantalla.
 
 ### DEMO-16 — Preparar guion y checklist de presentación
 
