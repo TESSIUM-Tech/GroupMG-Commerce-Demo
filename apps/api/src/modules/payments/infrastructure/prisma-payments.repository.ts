@@ -415,6 +415,9 @@ export class PrismaPaymentsRepository implements PaymentsRepository {
           },
           select: { id: true },
         });
+        console.log(
+          `[API] Order confirmed: orderId=${orderId} eventId=${outboxEventId} correlationId=${input.correlationId}`,
+        );
       }
       return {
         kind: "settled",

@@ -8,7 +8,9 @@ services:
       - ./infra/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./infra/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
     networks: [edge]
-    depends_on: [web, api]
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
   web:
     build:
       context: .
@@ -18,6 +20,18 @@ services:
     networks: [edge]
     environment:
       INTERNAL_API_URL: "http://api:3001"
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   api:
     build:
       context: .
@@ -39,6 +53,18 @@ services:
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
     depends_on:
       postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/api/v1/health/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   worker-erp:
     build:
       context: .

@@ -42,6 +42,7 @@ jobs:
       - run: pnpm run build
       - run: pnpm run db:migrate
       - run: pnpm run test
+      - run: pnpm run test:diagnostics
       - run: pnpm run test:worker
       - name: Messaging tests (RabbitMQ)
         run: pnpm run test:messaging
