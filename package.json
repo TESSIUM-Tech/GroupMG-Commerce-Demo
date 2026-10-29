@@ -6,6 +6,12 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "demo:up": "docker compose --profile app up --build -d",
+    "demo:down": "docker compose --profile app down",
+    "demo:doctor": "node scripts/demo-diagnostics.cjs",
+    "demo:status": "node scripts/demo-diagnostics.cjs",
+    "demo:reset": "node scripts/demo-reset.cjs",
+    "demo:seed": "pnpm db:seed && pnpm erp:seed",
     "erp:seed": "pnpm --filter @groupmg/erp-simulator seed",
     "erp:reset": "pnpm --filter @groupmg/erp-simulator reset --confirm-erp-demo-reset",
     "test:erp": "pnpm --filter @groupmg/erp-simulator test",
@@ -25,6 +31,7 @@
     "test:db": "pnpm --filter @groupmg/api run test:db",
     "test:api": "pnpm --filter @groupmg/api run test:api",
     "test": "pnpm --filter @groupmg/api run test",
+    "test:diagnostics": "node --test test/demo-diagnostics.test.cjs",
     "test:worker": "pnpm --filter @groupmg/worker-erp run test",
     "test:messaging": "pnpm --filter @groupmg/api run test:messaging && pnpm --filter @groupmg/worker-erp run test:messaging"
   },

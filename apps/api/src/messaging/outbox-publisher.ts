@@ -101,6 +101,9 @@ export class OutboxPublisher {
           data: { status: "published", publishedAt: new Date() },
           select: { id: true },
         });
+        console.log(
+          `[API] Outbox relayed: eventId=${event.id} type=${event.type} correlationId=${correlationIdOf(event.payload) ?? "none"}`,
+        );
         return "published";
       },
       { timeout: CLAIM_TIMEOUT_MS },

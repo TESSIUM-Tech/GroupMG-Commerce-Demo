@@ -327,11 +327,13 @@ Issue publicado: [#14](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Levantar apps, gateway, datos, RabbitMQ y simulador ERP con instrucciones reproducibles y readiness real.
-- [ ] Validar configuración/secretos de sandbox sin incluirlos en Git ni logs; mantener puertos de datos restringidos.
-- [ ] Mostrar correlationId/eventId y estado de exportación en logs para seguir una compra completa.
-- [ ] Documentar parada, reinicio, seed y recuperación; cualquier reset destructivo debe ser explícito y solo para datos demo.
-- [ ] Si se presenta por una URL pública, habilitar TLS, acceso limitado y ruta webhook sandbox probada; registrar dónde se aloja.
+- [x] Levantar apps, gateway, datos, RabbitMQ y simulador ERP con instrucciones reproducibles y readiness real.
+- [x] Validar configuración/secretos de sandbox sin incluirlos en Git ni logs; mantener puertos de datos restringidos.
+- [x] Mostrar correlationId/eventId y estado de exportación en logs para seguir una compra completa.
+- [x] Documentar parada, reinicio, seed y recuperación; cualquier reset destructivo debe ser explícito y solo para datos demo.
+- [x] Si se presenta por una URL pública, habilitar TLS, acceso limitado y ruta webhook sandbox probada; registrar dónde se aloja.
+
+Evidencia local: [demo-environment.md](demo-environment.md). Configuración de Compose con readiness real (`api` verifica PostgreSQL mediante `/api/v1/health/readiness`, `web` mediante `/health` y `gateway` depende de `service_healthy`). Script automatizado de diagnóstico `scripts/demo-diagnostics.cjs` (`pnpm demo:doctor`) que comprueba puertos en loopback (127.0.0.1) y enmascara secretos. Reinicio destructivo seguro `scripts/demo-reset.cjs` con bandera obligatoria `--confirm-demo-reset`. Trazabilidad estructurada de compras con `correlationId`, `orderId` y `eventId`. Guía de publicación pública con túnel TLS y pruebas de webhook.
 
 **Nota:** no mover PR a un runner compartido con producción. El runner propio depende de definir servidor, permisos y aislamiento; no bloquea usar la CI alojada por GitHub.
 
