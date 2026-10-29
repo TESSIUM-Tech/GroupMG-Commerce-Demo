@@ -11,6 +11,10 @@ export interface WorkerConfig {
   erpBaseUrl: string;
   erpTimeoutMs: number;
   erpPageSize: number;
+  /** Inventory sync (DEMO-13) */
+  inventorySyncEnabled: boolean;
+  inventorySyncIntervalMs: number;
+  inventorySyncTimeoutMs: number;
 }
 
 export class WorkerConfigError extends Error {
@@ -45,6 +49,39 @@ export function loadWorkerConfig(
   if (!ADAPTERS.includes(erpAdapter)) {
     problems.push(`ERP_ADAPTER must be one of: ${ADAPTERS.join(", ")}`);
   }
+
+  const inventorySyncEnabled =
+    env.INVENTORY_SYNC_ENABLED !== undefined
+      ? env.INVENTORY_SYNC_ENABLED.trim().toLowerCase() === "true" ||
+        env.INVENTORY_SYNC_ENABLED.trim() === "1"
+      : true;
+
+  const rawInterval = env.INVENTORY_SYNC_INTERVAL_MS?.trim();
+  let inventorySyncIntervalMs = 30_000;
+  if (rawInterval !== undefined && rawInterval !== "") {
+    const parsed = Number(rawInterval);
+    if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 86_400_000) {
+      problems.push(
+        "INVENTORY_SYNC_INTERVAL_MS must be an integer between 1 and 86400000",
+      );
+    } else {
+      inventorySyncIntervalMs = parsed;
+    }
+  }
+
+  const rawTimeout = env.INVENTORY_SYNC_TIMEOUT_MS?.trim();
+  let inventorySyncTimeoutMs = 10_000;
+  if (rawTimeout !== undefined && rawTimeout !== "") {
+    const parsed = Number(rawTimeout);
+    if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 60_000) {
+      problems.push(
+        "INVENTORY_SYNC_TIMEOUT_MS must be an integer between 1 and 60000",
+      );
+    } else {
+      inventorySyncTimeoutMs = parsed;
+    }
+  }
+
   if (problems.length > 0) throw new WorkerConfigError(problems);
   return {
     databaseUrl,
@@ -54,6 +91,9 @@ export function loadWorkerConfig(
     erpBaseUrl: env.ERP_BASE_URL?.trim() || "http://127.0.0.1:3003",
     erpTimeoutMs: Number(env.ERP_TIMEOUT_MS ?? 3000),
     erpPageSize: Number(env.ERP_PAGE_SIZE ?? 20),
+    inventorySyncEnabled,
+    inventorySyncIntervalMs,
+    inventorySyncTimeoutMs,
   };
 }
 

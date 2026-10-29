@@ -6,6 +6,7 @@ import {
   type WorkerConfig,
 } from "./config/worker.config";
 import { ErpSalesWorker } from "./messaging/erp-sales.worker";
+import { InventorySyncWorker } from "./sync/inventory-sync.worker";
 import { ERP_PORT } from "./ports/erp.port";
 import { SimulatedErpAdapter } from "./adapters/simulated-erp/simulated-erp.adapter";
 
@@ -39,6 +40,7 @@ import { SimulatedErpAdapter } from "./adapters/simulated-erp/simulated-erp.adap
       inject: [WORKER_CONFIG],
     },
     ErpSalesWorker,
+    InventorySyncWorker,
   ],
   exports: [ERP_PORT],
 })

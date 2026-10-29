@@ -7,10 +7,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --test test/worker-unit.test.cjs",
-    "test:db": "node --test test/export-sale.test.cjs",
+    "test:unit": "node --test test/worker-unit.test.cjs test/inventory-sync-unit.test.cjs",
+    "test:db": "node --test test/export-sale.test.cjs test/inventory-sync-db.test.cjs",
     "test:messaging": "node --test --test-concurrency=1 test/erp-sales-consumer.test.cjs test/dead-letter.test.cjs test/e2e-sale-export.test.cjs",
-    "test": "node --test --test-concurrency=1 test/worker-unit.test.cjs test/simulated-erp.test.cjs test/export-sale.test.cjs"
+    "test": "node --test --test-concurrency=1 test/worker-unit.test.cjs test/inventory-sync-unit.test.cjs test/simulated-erp.test.cjs test/export-sale.test.cjs test/inventory-sync-db.test.cjs"
   },
   "dependencies": {
     "@groupmg/contracts": "workspace:*",

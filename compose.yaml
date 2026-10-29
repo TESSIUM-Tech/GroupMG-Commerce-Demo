@@ -56,6 +56,10 @@ services:
       # las ventas esperan en la cola erp.sales.v1.
       DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
       RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
+      # Sincronización de inventario (DEMO-13)
+      INVENTORY_SYNC_ENABLED: ${INVENTORY_SYNC_ENABLED:-true}
+      INVENTORY_SYNC_INTERVAL_MS: ${INVENTORY_SYNC_INTERVAL_MS:-30000}
+      INVENTORY_SYNC_TIMEOUT_MS: ${INVENTORY_SYNC_TIMEOUT_MS:-10000}
     depends_on:
       erp-simulator: { condition: service_healthy }
       postgres: { condition: service_healthy }

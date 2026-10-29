@@ -41,6 +41,9 @@ test("the simulated ERP (DEMO-11) is the default adapter; none opts out", () => 
     erpBaseUrl: "http://127.0.0.1:3003",
     erpTimeoutMs: 3000,
     erpPageSize: 20,
+    inventorySyncEnabled: true,
+    inventorySyncIntervalMs: 30000,
+    inventorySyncTimeoutMs: 10000,
   });
   const config = loadWorkerConfig({
     DATABASE_URL: "postgresql://u:p@127.0.0.1:5432/db",
@@ -49,11 +52,17 @@ test("the simulated ERP (DEMO-11) is the default adapter; none opts out", () => 
     ERP_BASE_URL: "http://erp-simulator:3003",
     ERP_TIMEOUT_MS: "5000",
     ERP_PAGE_SIZE: "50",
+    INVENTORY_SYNC_ENABLED: "false",
+    INVENTORY_SYNC_INTERVAL_MS: "60000",
+    INVENTORY_SYNC_TIMEOUT_MS: "15000",
   });
   assert.equal(config.erpAdapter, "none");
   assert.equal(config.erpBaseUrl, "http://erp-simulator:3003");
   assert.equal(config.erpTimeoutMs, 5000);
   assert.equal(config.erpPageSize, 50);
+  assert.equal(config.inventorySyncEnabled, false);
+  assert.equal(config.inventorySyncIntervalMs, 60000);
+  assert.equal(config.inventorySyncTimeoutMs, 15000);
 });
 
 test("invalid worker configuration names the variable, never its value", () => {
@@ -61,6 +70,8 @@ test("invalid worker configuration names the variable, never its value", () => {
     { DATABASE_URL: "mysql://u:secret-pass@h/db" },
     { RABBITMQ_URL: "http://u:secret-pass@h:5672" },
     { ERP_ADAPTER: "sap" },
+    { INVENTORY_SYNC_INTERVAL_MS: "not-a-number" },
+    { INVENTORY_SYNC_TIMEOUT_MS: "-100" },
   ]) {
     assert.throws(
       () => loadWorkerConfig(env),

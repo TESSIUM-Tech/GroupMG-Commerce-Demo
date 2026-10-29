@@ -248,3 +248,17 @@ model ErpSaleExport {
 
   @@index([status, updatedAt])
 }
+
+/// Written by worker-erp only (DEMO-13): checkpoint for paged inventory import.
+model ErpSyncCheckpoint {
+  id          String    @id @default("inventory")
+  cursor      String?
+  pageIndex   Int       @default(0)
+  itemsSynced Int       @default(0)
+  status      String    @default("idle")
+  lastError   String?
+  startedAt   DateTime? @db.Timestamptz(3)
+  completedAt DateTime? @db.Timestamptz(3)
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3)
+}
+
