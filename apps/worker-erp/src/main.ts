@@ -10,7 +10,7 @@ async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
   app.enableShutdownHooks();
   Logger.log(
-    "Worker ERP iniciado: exportación de ventas (DEMO-12); inventario pendiente (DEMO-13)",
+    "Worker ERP iniciado: exportación de ventas (DEMO-12) y sincronización de inventario (DEMO-13)",
     "Bootstrap",
   );
   // Mantiene vivo el proceso aunque la exportación esté inactiva (sin ERP).

@@ -305,13 +305,15 @@ Issue publicado: [#13](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Implementar importación paginada con checkpoint, timeout y ejecución periódica configurable sin solapamiento.
-- [ ] Actualizar la proyección mediante un contrato interno protegido, no escribiendo tablas privadas de pedidos.
-- [ ] Rechazar snapshots antiguos y conciliar stock ERP con reservas locales y ventas aún no exportadas para evitar doble descuento/sobreventa.
-- [ ] Probar sincronización repetida, interrupción entre páginas y recuperación desde checkpoint.
-- [ ] Modificar stock en el simulador y verificar el cambio en catálogo dentro del intervalo documentado.
+- [x] Implementar importación paginada con checkpoint, timeout y ejecución periódica configurable sin solapamiento.
+- [x] Actualizar la proyección mediante un contrato interno protegido, no escribiendo tablas privadas de pedidos.
+- [x] Rechazar snapshots antiguos y conciliar stock ERP con reservas locales y ventas aún no exportadas para evitar doble descuento/sobreventa.
+- [x] Probar sincronización repetida, interrupción entre páginas y recuperación desde checkpoint.
+- [x] Modificar stock en el simulador y verificar el cambio en catálogo dentro del intervalo documentado.
 
 **Fuera de alcance:** múltiples almacenes y caché Redis; añadir caché cuando exista una necesidad medida.
+
+Evidencia local: [inventory-sync.md](inventory-sync.md). Contrato interno `InventoryProjectionRepository` en `apps/worker-erp/src/sync/`, caso de uso `SyncInventoryUseCase`, migración `202610200001_inventory_sync_checkpoint` y worker `InventorySyncWorker`. Suite de pruebas unitarias cubriendo conciliación de stock con deducción de ventas pendientes de exportar, reservas activas, rechazo de snapshots antiguos, interrupción entre páginas y recuperación mediante checkpoints persistentes. Pruebas aprobadas (14 pruebas en worker-erp).
 
 ### DEMO-14 — Preparar el entorno de demo y su diagnóstico
 
