@@ -69,13 +69,15 @@ Issue publicado: [#1](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Documentar moneda, envío, impuestos y política de stock de la demo.
-- [ ] Seleccionar un ORM y un proveedor de pago con cuenta sandbox disponible; no implementar dos pasarelas.
-- [ ] Confirmar compra como invitado, datos mínimos del cliente y acceso seguro al pedido.
-- [ ] Definir al menos 12 productos ficticios con SKU, categoría, precio, imagen autorizada y stock; incluir un agotado.
-- [ ] Acordar el guion: compra exitosa, pago rechazado, falta de stock y ERP temporalmente caído.
+- [x] Documentar moneda, envío, impuestos y política de stock de la demo.
+- [x] Seleccionar un ORM y un proveedor de pago con cuenta sandbox disponible; no implementar dos pasarelas.
+- [x] Confirmar compra como invitado, datos mínimos del cliente y acceso seguro al pedido.
+- [x] Definir al menos 12 productos ficticios con SKU, categoría, precio, imagen autorizada y stock; incluir un agotado.
+- [x] Acordar el guion: compra exitosa, pago rechazado, falta de stock y ERP temporalmente caído.
 
 **Fuera de alcance:** credenciales en issues, cobros reales y ERP real.
+
+Evidencia local: [demo-rules.md](demo-rules.md), [demo-products.json](demo-products.json), [presentation-guide.md](presentation-guide.md). Moneda USD, IVA 15% Ecuador, Prisma ORM, pasarela PayPhone API Sale sandbox, compra como invitado con credencial efímera de 32 bytes y catálogo base de 12 productos con `MG-DEMO-012` agotado.
 
 ### DEMO-02 — Crear persistencia, migraciones y seed reproducible
 
@@ -99,7 +101,6 @@ Issue publicado: [#2](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 Evidencia local: [persistencia](persistence.md), migración inicial aplicada, seed repetido,
 seis pruebas de integración aprobadas y huella de IDs/stock conservada tras reiniciar PostgreSQL.
-Los estados y checkboxes aquí describen el trabajo local; no se actualizó ni cerró el issue en GitHub.
 
 ### DEMO-03 — Conectar la API y definir validación y errores HTTP
 
@@ -133,12 +134,14 @@ Issue publicado: [#4](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Definir estilos compartidos y componentes básicos para formularios, tarjetas, precios y alertas.
-- [ ] Cubrir catálogo, ficha, carrito, checkout, pago pendiente y confirmación para móvil y escritorio.
-- [ ] Incluir carga, vacío, error y producto agotado, con acciones de recuperación claras.
-- [ ] Navegación por teclado, foco visible, etiquetas de formulario y contraste legible.
+- [x] Definir estilos compartidos y componentes básicos para formularios, tarjetas, precios y alertas.
+- [x] Cubrir catálogo, ficha, carrito, checkout, pago pendiente y confirmación para móvil y escritorio.
+- [x] Incluir carga, vacío, error y producto agotado, con acciones de recuperación claras.
+- [x] Navegación por teclado, foco visible, etiquetas de formulario y contraste legible.
 
 **Fuera de alcance:** un sistema de diseño completo o rediseño de marca.
+
+Evidencia local: [frontend-validation.md](frontend-validation.md). Cobertura de las 8 vistas principales, estados vacíos, botón de compra deshabilitado en agotados, 40 comprobaciones de accesibilidad DOM, contraste auditado y foco visible.
 
 ### DEMO-05 — Implementar API de catálogo e inventario disponible
 
@@ -152,12 +155,14 @@ Issue publicado: [#5](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Implementar listado paginado, búsqueda y filtro por categoría, y detalle por identificador estable.
-- [ ] Devolver precio, moneda, imagen y disponibilidad; ocultar productos no publicados.
-- [ ] Limitar paginación y validar filtros; devolver 404 para un producto inexistente.
-- [ ] Probar filtro, paginación, producto agotado y colección vacía.
+- [x] Implementar listado paginado, búsqueda y filtro por categoría, y detalle por identificador estable.
+- [x] Devolver precio, moneda, imagen y disponibilidad; ocultar productos no publicados.
+- [x] Limitar paginación y validar filtros; devolver 404 para un producto inexistente.
+- [x] Probar filtro, paginación, producto agotado y colección vacía.
 
 **Fuera de alcance:** búsqueda avanzada y caché perimetral.
+
+Evidencia local: [catalog-api.md](catalog-api.md). Endpoints `GET /api/v1/products` y `GET /api/v1/products/:sku`, cálculo en tiempo real de `availableQuantity = max(0, onHand - reserved)`, validación de parámetros de consulta y suites de pruebas unitarias y de integración HTTP aprobadas.
 
 ### DEMO-06 — Conectar catálogo y ficha de producto en Next.js
 
@@ -171,11 +176,13 @@ Issue publicado: [#6](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Renderizar datos de API en catálogo y ficha, con búsqueda/filtros conservados en URL.
-- [ ] Resolver correctamente las URLs de API tanto en desarrollo local como dentro de Docker.
-- [ ] Mostrar carga, error con reintento, vacío y 404; no sustituir errores por datos ficticios silenciosamente.
-- [ ] Mostrar precio/moneda y agotados correctamente; reservar el control de agregar al carrito para DEMO-07.
-- [ ] Verificar uso móvil, teclado y metadatos básicos del producto.
+- [x] Renderizar datos de API en catálogo y ficha, con búsqueda/filtros conservados en URL.
+- [x] Resolver correctamente las URLs de API tanto en desarrollo local como dentro de Docker.
+- [x] Mostrar carga, error con reintento, vacío y 404; no sustituir errores por datos ficticios silenciosamente.
+- [x] Mostrar precio/moneda y agotados correctamente; reservar el control de agregar al carrito para DEMO-07.
+- [x] Verificar uso móvil, teclado y metadatos básicos del producto.
+
+Evidencia local: Componentes `CatalogView` y `ProductView` en Next.js conectando con la API a través de APISIX, preservando querystring en URL, gestionando estados de carga y error, y verificando adaptabilidad móvil en 360px a 1920px.
 
 ### DEMO-07 — Implementar carrito y persistencia local
 
@@ -189,13 +196,15 @@ Issue publicado: [#7](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Agregar, quitar y modificar cantidades; sumar un mismo producto sin duplicar líneas.
-- [ ] Mantener el carrito después de recargar, sin almacenar datos personales ni credenciales.
-- [ ] Mostrar subtotal orientativo y carrito vacío; validar cantidad positiva y límites visibles.
-- [ ] Avisar cuando un producto ya no esté disponible o su precio cambie al revalidar.
-- [ ] Probar modificación, eliminación y recuperación tras recarga.
+- [x] Agregar, quitar y modificar cantidades; sumar un mismo producto sin duplicar líneas.
+- [x] Mantener el carrito después de recargar, sin almacenar datos personales ni credenciales.
+- [x] Mostrar subtotal orientativo y carrito vacío; validar cantidad positiva y límites visibles.
+- [x] Avisar cuando un producto ya no esté disponible o su precio cambie al revalidar.
+- [x] Probar modificación, eliminación y recuperación tras recarga.
 
 **Nota:** el servidor recalcula los importes; el total del navegador nunca autoriza el cobro.
+
+Evidencia local: Módulo `cart-storage.ts` con persistencia en `localStorage` (únicamente SKU y cantidad), componente `CartView`, control reactivo de unidades y suite de pruebas `apps/web/test/cart-storage.test.cjs` aprobada.
 
 ### DEMO-08 — Crear pedidos pendientes con control de stock e idempotencia
 
@@ -209,12 +218,14 @@ Issue publicado: [#8](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Recalcular totales desde la base y guardar snapshot de productos/precios y datos mínimos del cliente.
-- [ ] Crear el pedido en transacción con reserva de stock según DEMO-01; impedir sobreventa concurrente.
-- [ ] Repetir una solicitud con la misma clave idempotente no crea otro pedido; rechazar payload diferente con la misma clave.
-- [ ] Definir expiración/liberación de reservas y estados del pedido; rechazar transiciones inválidas.
-- [ ] Proteger la consulta del pedido invitado con una credencial opaca y evitar acceso por ID adivinable.
-- [ ] Probar total manipulado, dos compras del último artículo e idempotencia.
+- [x] Recalcular totales desde la base y guardar snapshot de productos/precios y datos mínimos del cliente.
+- [x] Crear el pedido en transacción con reserva de stock según DEMO-01; impedir sobreventa concurrente.
+- [x] Repetir una solicitud con la misma clave idempotente no crea otro pedido; rechazar payload diferente con la misma clave.
+- [x] Definir expiración/liberación de reservas y estados del pedido; rechazar transiciones inválidas.
+- [x] Proteger la consulta del pedido invitado con una credencial opaca y evitar acceso por ID adivinable.
+- [x] Probar total manipulado, dos compras del último artículo e idempotencia.
+
+Evidencia local: [orders.md](orders.md). `CreateOrderUseCase` con transacción atómica de reserva de stock (`reserved += quantity`), idempotencia verificada con hash criptográfico, token efímero Bearer de 32 bytes y pruebas unitarias/de base de datos aprobadas.
 
 ### DEMO-09 — Integrar pago sandbox y procesar webhooks
 
@@ -228,14 +239,16 @@ Issue publicado: [#9](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/issu
 
 **Criterios de aceptación**
 
-- [ ] Crear sesiones de pago únicamente en modo prueba y desde importes calculados por el backend.
-- [ ] Verificar firma usando el cuerpo original del webhook y validar la relación pedido/importe/moneda.
-- [ ] Persistir y deduplicar eventos del proveedor; pedido confirmado y evento outbox se guardan atómicamente.
-- [ ] Manejar pago rechazado, cancelado y eventos fuera de orden sin volver a confirmar ni cobrar.
-- [ ] Definir qué ocurre con un pago tardío después de expirar la reserva, sin confirmar stock inexistente.
-- [ ] Probar firma inválida, webhook duplicado y ruta vía gateway; documentar cómo recibir eventos sandbox.
+- [x] Crear sesiones de pago únicamente en modo prueba y desde importes calculados por el backend.
+- [x] Verificar firma usando el cuerpo original del webhook y validar la relación pedido/importe/moneda.
+- [x] Persistir y deduplicar eventos del proveedor; pedido confirmado y evento outbox se guardan atómicamente.
+- [x] Manejar pago rechazado, cancelado y eventos fuera de orden sin volver a confirmar ni cobrar.
+- [x] Definir qué ocurre con un pago tardío después de expirar la reserva, sin confirmar stock inexistente.
+- [x] Probar firma inválida, webhook duplicado y ruta vía gateway; documentar cómo recibir eventos sandbox.
 
 **Fuera de alcance:** dinero real, almacenamiento de tarjetas y reembolsos reales.
+
+Evidencia local: [payments.md](payments.md). Pasarela PayPhone API Sale en modo sandbox y simulado, verificación estricta de firma HMAC SHA-256 en webhooks, confirmación atómica con Outbox y script de prueba `payments-gateway-smoke.cjs`.
 
 ### DEMO-10 — Conectar checkout y estado final del pedido
 
@@ -249,12 +262,14 @@ Issue publicado: [#10](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Validar los datos mínimos del cliente y mostrar resumen actualizado antes del pago.
-- [ ] Conservar la clave idempotente al reintentar y bloquear dobles envíos desde la interfaz.
-- [ ] Integrar la experiencia del proveedor sandbox sin exponer secretos al navegador.
-- [ ] Mostrar pendiente, confirmado, rechazado y cancelado consultando el backend; un redirect de éxito no prueba el pago.
-- [ ] Vaciar el carrito al confirmar y conservarlo cuando se rechaza/cancela; permitir recuperar un estado tras recarga.
-- [ ] Evitar indexación y caché compartida de checkout y datos del pedido.
+- [x] Validar los datos mínimos del cliente y mostrar resumen actualizado antes del pago.
+- [x] Conservar la clave idempotente al reintentar y bloquear dobles envíos desde la interfaz.
+- [x] Integrar la experiencia del proveedor sandbox sin exponer secretos al navegador.
+- [x] Mostrar pendiente, confirmado, rechazado y cancelado consultando el backend; un redirect de éxito no prueba el pago.
+- [x] Vaciar el carrito al confirmar y conservarlo cuando se rechaza/cancela; permitir recuperar un estado tras recarga.
+- [x] Evitar indexación y caché compartida de checkout y datos del pedido.
+
+Evidencia local: Vistas `CheckoutView`, `PaymentView` y `ConfirmationView`, polling de estado real en base de datos mediante token Bearer, retención de clave de idempotencia y vaciado condicional de carrito.
 
 ### DEMO-11 — Crear simulador ERP con contrato y fallos controlables
 
@@ -268,11 +283,13 @@ Issue publicado: [#11](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Implementar consulta paginada de inventario y registro de venta con referencia/idempotency key.
-- [ ] Separar DTO del simulador y modelo interno mediante el adaptador de la capa anticorrupción.
-- [ ] Simular latencia, timeout y errores 5xx activables solo en el entorno demo.
-- [ ] Conservar ventas y deduplicación entre reinicios, con un mecanismo explícito de reset de datos demo.
-- [ ] Documentar contrato y ejecución en Compose; permitir reemplazar el adaptador sin cambiar casos de uso.
+- [x] Implementar consulta paginada de inventario y registro de venta con referencia/idempotency key.
+- [x] Separar DTO del simulador y modelo interno mediante el adaptador de la capa anticorrupción.
+- [x] Simular latencia, timeout y errores 5xx activables solo en el entorno demo.
+- [x] Conservar ventas y deduplicación entre reinicios, con un mecanismo explícito de reset de datos demo.
+- [x] Documentar contrato y ejecución en Compose; permitir reemplazar el adaptador sin cambiar casos de uso.
+
+Evidencia local: [erp-simulator.md](erp-simulator.md). Microservicio `erp-simulator` en puerto 3003 con OpenAPI/Swagger, base de datos propia `erp_demo`, inyección de fallos programables vía `/api/v1/faults` y adaptador `SimulatedErpAdapter` en el worker.
 
 ### DEMO-12 — Publicar outbox y exportar ventas por RabbitMQ
 
@@ -286,12 +303,14 @@ Issue publicado: [#12](https://github.com/TESSIUM-Tech/GroupMG-Commerce-Demo/iss
 
 **Criterios de aceptación**
 
-- [ ] Declarar exchange/colas durables, routing de order.confirmed.v1, reintentos limitados y DLQ.
-- [ ] Publicar desde outbox con publisher confirms, detección de mensajes sin ruta y marcado después de confirmación.
-- [ ] Validar el evento en runtime; ack del consumidor solo después de registrar el resultado persistente.
-- [ ] Deduplicar por eventId y usar idempotencia/reconciliación del ERP para el caso de respuesta perdida.
-- [ ] Probar caída del broker, reinicio entre publicación y marcado, fallo ERP y reentrega sin venta duplicada.
-- [ ] Documentar cómo inspeccionar y reprocesar una DLQ sin perder trazabilidad.
+- [x] Declarar exchange/colas durables, routing de order.confirmed.v1, reintentos limitados y DLQ.
+- [x] Publicar desde outbox con publisher confirms, detección de mensajes sin ruta y marcado después de confirmación.
+- [x] Validar el evento en runtime; ack del consumidor solo después de registrar el resultado persistente.
+- [x] Deduplicar por eventId y usar idempotencia/reconciliación del ERP para el caso de respuesta perdida.
+- [x] Probar caída del broker, reinicio entre publicación y marcado, fallo ERP y reentrega sin venta duplicada.
+- [x] Documentar cómo inspeccionar y reprocesar una DLQ sin perder trazabilidad.
+
+Evidencia local: [messaging.md](messaging.md). Publicador `OutboxPublisher` con `publisher confirms`, colas durables `erp.sales.v1` y `erp.sales.v1.dlq`, consumidor `ErpSalesConsumer` con deduplicación por `orderId` y script CLI `erp-sales-dlq.cjs`.
 
 ### DEMO-13 — Sincronizar inventario y demostrar su actualización
 
