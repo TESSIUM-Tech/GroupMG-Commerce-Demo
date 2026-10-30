@@ -40,6 +40,7 @@ services:
     profiles: [app]
     networks: [edge, data]
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: "3001"
       DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
       # Pagos (DEMO-09): opcionales; sin ellos la API arranca con pagos desactivados.
@@ -96,6 +97,7 @@ services:
       dockerfile: infra/docker/Dockerfile
       args: { WORKSPACE: "@groupmg/erp-simulator" }
     profiles: [app, erp-demo]
+    ports: ["127.0.0.1:3003:3003"]
     networks: [integration, erp-data]
     environment:
       ERP_DATABASE_URL: postgresql://erp_demo:${ERP_POSTGRES_PASSWORD:-erp-local-change-me}@erp-postgres:5432/erp_demo
@@ -120,7 +122,8 @@ services:
   erp-postgres:
     image: postgres:17-bookworm
     profiles: [app, erp-demo]
-    networks: [erp-data]
+    ports: ["127.0.0.1:5433:5432"]
+    networks: [erp-data, local-db]
     environment:
       POSTGRES_USER: erp_demo
       POSTGRES_PASSWORD: ${ERP_POSTGRES_PASSWORD:-erp-local-change-me}
