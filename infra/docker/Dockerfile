@@ -6,6 +6,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY apps/worker-erp/package.json apps/worker-erp/package.json
+COPY apps/erp-simulator/package.json apps/erp-simulator/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
 RUN corepack prepare pnpm@12.5.1 --activate
 
@@ -13,7 +14,7 @@ FROM base AS build
 RUN pnpm install --frozen-lockfile
 COPY . .
 ARG WORKSPACE
-RUN pnpm --filter=${WORKSPACE} run build
+RUN DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build pnpm --filter=${WORKSPACE} run build
 ENV CI=true
 RUN pnpm install --prod --frozen-lockfile
 

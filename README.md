@@ -6,57 +6,53 @@ Monorepo TypeScript con storefront Next.js, API modular NestJS e integración ER
 asíncrona. Este repositorio define la estructura inicial de desarrollo, los límites
 entre componentes y la infraestructura local.
 
-> **Estado: init / scaffold.** Las aplicaciones arrancan y la web tiene vistas
-> iniciales. El catálogo real, la autenticación, los pedidos, los pagos y la
-> sincronización ERP todavía no están implementados.
+> **Estado: Demo completa reproducible (M1-M4 completados).** El flujo de catálogo, carrito, órdenes con reserva de stock, pagos con PayPhone (modo sandbox y simulado), publicación transaccional outbox, mensajería RabbitMQ, consumo en Worker y conciliación/exportación con el Simulador ERP están implementados y verificados con pruebas deterministas, smoke tests y diagnóstico automatizado.
 
-[Arquitectura detallada](docs/architecture.md) · [Guía de desarrollo](docs/development.md) · [Roadmap](docs/roadmap.md)
+[Guion y checklist de presentación](docs/presentation-guide.md) · [Entorno de demo y diagnóstico](docs/demo-environment.md) · [Validación QA de integración](docs/qa/integration-validation.md) · [Arquitectura detallada](docs/architecture.md) · [Guía de desarrollo](docs/development.md) · [Roadmap](docs/roadmap.md) · [Reglas de la demo](docs/demo-rules.md)
 
 ## Arquitectura
 
-Las líneas continuas representan rutas configuradas en el gateway. Las líneas
-punteadas muestran integraciones previstas, aún sin implementar. Los contenedores
-de datos existen, pero las aplicaciones todavía no se conectan a ellos.
+Las líneas continuas representan componentes y flujos **implementados y funcionales**. Las líneas punteadas muestran extensiones pendientes u opcionales del backlog. El componente ERP corresponde a un **simulador HTTP aislado** (`@groupmg/erp-simulator`) con su propia base de datos persistente.
 
 ```mermaid
 flowchart LR
     subgraph client ["Cliente"]
-        browser["Web / móvil"]
+        browser["Web / móvil (Next.js)"]
     end
     subgraph gateway ["Perímetro"]
-        apisix["Apache APISIX"]
-        coraza["Coraza WASM / OWASP CRS · pendiente"]
+        apisix["Apache APISIX (Enrutamiento y CORS)"]
+        coraza["Coraza WASM / OWASP CRS · opcional"]
     end
-    subgraph service ["Aplicaciones"]
+    subgraph service ["Aplicaciones (Implementado)"]
         web["Next.js · storefront"]
         api["NestJS · API modular"]
         worker["NestJS · worker ERP"]
     end
-    subgraph datastore ["Datos"]
-        postgres[("PostgreSQL")]
-        redis[("Redis")]
+    subgraph datastore ["Datos (Implementado)"]
+        postgres[("PostgreSQL 17 · commerce_demo")]
+        redis[("Redis 7.4 · infraestructura")]
     end
-    subgraph async ["Mensajería"]
-        rabbit["RabbitMQ"]
+    subgraph async ["Mensajería (Implementado)"]
+        rabbit["RabbitMQ 4.1 · exchanges y colas"]
     end
-    subgraph external ["Servicios externos"]
-        payments["Stripe / PayPal · por definir"]
-        erp["ERP · inventario y ventas"]
+    subgraph external ["Integraciones"]
+        payments["PayPhone API Sale · Sandbox / Simulado"]
+        erp["Simulador ERP HTTP · erp_demo"]
     end
 
-    browser -->|HTTP local| apisix
+    browser -->|HTTP / :8080| apisix
     apisix -->|Vistas| web
     apisix -->|/api/*| api
-    coraza -.->|Filtro integrado previsto| apisix
-    web -.->|Consulta de catálogo| api
-    api -.->|Pedidos y outbox| postgres
-    api -.->|Caché y sesiones| redis
-    api -.->|Iniciar pago| payments
-    payments -.->|Webhook vía gateway| apisix
-    api -.->|Evento confirmado vía outbox| rabbit
-    rabbit -.->|Consumo idempotente| worker
-    worker -.->|Inventario y registro de ventas| erp
-    worker -.->|Proyección mediante contrato interno| api
+    coraza -.->|Filtro perimetral opcional| apisix
+    web -->|Consulta de catálogo y checkout| api
+    api -->|Prisma: Pedidos, Pagos, Inventario, Outbox| postgres
+    api -.->|Caché de sesión opcional| redis
+    api -->|Iniciar pago y recibir callback| payments
+    payments -->|Webhook firmado HMAC SHA-256| apisix
+    api -->|Publicación outbox order.confirmed.v1| rabbit
+    rabbit -->|Consumo erp.sales.v1 con deduplicación| worker
+    worker -->|Exportación de ventas y sincronización| erp
+    worker -->|Proyección inventario contrato interno| api
 ```
 
 La API es dueña de las reglas de pedidos y pagos. Next.js se ocupa de la
@@ -66,9 +62,8 @@ este init.
 
 ### Flujo objetivo de una compra
 
-Este diagrama describe el comportamiento que se implementará. El paso
-**pedido + outbox** debe ser una sola transacción. El publicador outbox forma
-parte del diseño backend y todavía no existe en el código.
+Este diagrama describe el comportamiento implementado de una compra completa:
+el paso **pedido + outbox** se ejecuta como una sola transacción atómica en PostgreSQL.
 
 ```mermaid
 sequenceDiagram
@@ -83,40 +78,43 @@ sequenceDiagram
     participant ERP
 
     Cliente->>Web: Iniciar compra
-    Web->>API: Solicitar checkout
-    API->>Pasarela: Crear sesión de pago
-    Pasarela-->>Web: Presentar checkout del proveedor
-    Pasarela->>API: Webhook mediante APISIX
-    API->>API: Verificar firma y deduplicar evento
-    API->>PostgreSQL: Confirmar pedido y guardar outbox
-    API-->>Pasarela: Confirmar recepción persistida
-    PublicadorOutbox->>PostgreSQL: Leer eventos pendientes
-    PublicadorOutbox->>RabbitMQ: Publicar order.confirmed.v1
-    RabbitMQ-->>PublicadorOutbox: Confirmar publicación
-    PublicadorOutbox->>PostgreSQL: Marcar evento publicado
-    RabbitMQ->>WorkerERP: Entregar evento
+    Web->>API: Solicitar checkout con reserva de stock
+    API->>PostgreSQL: Guardar orden (pending_payment) y reservar stock
+    API->>Pasarela: Crear solicitud API Sale
+    Pasarela-->>Cliente: Solicitar pago en PayPhone
+    Pasarela->>API: Notificar webhook con firma HMAC SHA-256
+    API->>API: Validar firma HMAC, deduplicar y confirmar orden
+    API->>PostgreSQL: Confirmar pedido y registrar Outbox en transacción atómica
+    API-->>Pasarela: Confirmar recepción persistida (HTTP 200)
+    PublicadorOutbox->>PostgreSQL: Leer eventos pendientes (lock seguro)
+    PublicadorOutbox->>RabbitMQ: Publicar order.confirmed.v1 en commerce.events
+    RabbitMQ-->>PublicadorOutbox: Confirmar publicación (ack)
+    PublicadorOutbox->>PostgreSQL: Marcar evento como publicado
+    RabbitMQ->>WorkerERP: Entregar evento erp.sales.v1
+    WorkerERP->>WorkerERP: Verificar deduplicación por orderId
     WorkerERP->>ERP: Registrar venta con idempotencia
 ```
 
-La entrega será **al menos una vez**: un evento puede repetirse y el consumidor
-debe deduplicarlo. Un fallo del ERP no deshace un pago confirmado. Reintentos,
-cola de errores y reconciliación están descritos en la [arquitectura](docs/architecture.md).
+La entrega es **al menos una vez**: un evento puede repetirse y el consumidor
+lo deduplica con su tabla `ErpSaleExport`. Un fallo del ERP no deshace un pago confirmado. Reintentos,
+cola de cartas muertas (DLQ) y reconciliación están descritos en la [arquitectura](docs/architecture.md) y en [la validación QA](docs/qa/integration-validation.md).
 
 ## Stack y estado actual
 
-| Área         | Tecnología                | Incluido en el init                                         |
-| ------------ | ------------------------- | ----------------------------------------------------------- |
-| Monorepo     | pnpm 12.5.1 / TypeScript  | Workspaces, lockfile y configuración común                  |
-| Web          | Next.js 16 / React 19     | Inicio, catálogo y checkout con estados vacíos              |
-| Backend      | NestJS 11                 | Módulos vacíos de catálogo, auth, pedidos y pagos; liveness |
-| Worker       | NestJS 11                 | Arranque independiente y puerto tipado para ERP             |
-| Contratos    | TypeScript                | Propuesta de evento `order.confirmed.v1`                    |
-| Gateway      | Apache APISIX             | Rutas web/API en modo standalone                            |
-| Persistencia | PostgreSQL 17             | Contenedor con volumen; sin tablas ni migraciones           |
-| Caché        | Redis 7.4                 | Contenedor con volumen; sin cliente de aplicación           |
-| Mensajería   | RabbitMQ 4.1              | Broker y consola; sin exchanges ni consumidores propios     |
-| WAF          | Coraza / OWASP CRS        | Plan de integración, pendiente de habilitar                 |
-| Calidad      | GitHub Actions / Prettier | Formato, tipos, build y validación de Compose               |
+| Área         | Tecnología                | Estado en la Demo                                                                   |
+| ------------ | ------------------------- | ----------------------------------------------------------------------------------- |
+| Monorepo     | pnpm 12.5.1 / TypeScript  | Workspaces, lockfile congelado y configuración común                                |
+| Web          | Next.js 16 / React 19     | Inicio, catálogo responsive, carrito interactivo, checkout y confirmación           |
+| Backend      | NestJS 11                 | Catálogo, órdenes, pagos PayPhone, outbox transaccional y liveness/readiness real   |
+| Worker       | NestJS 11                 | Consumo RabbitMQ, exportación a ERP, reconciliación de inventario con checkpoints   |
+| Simulador    | NestJS 11                 | ERP simulado HTTP con persistencia propia en `erp_demo`, Swagger y simulación fallo |
+| Contratos    | TypeScript                | Eventos versionados compartidos (`order.confirmed.v1`)                              |
+| Gateway      | Apache APISIX             | Rutas web/API con readiness dependiente de servicios saludables                     |
+| Persistencia | PostgreSQL 17             | Prisma, esquemas con CHECK constraints, migraciones y seed demo                     |
+| Caché        | Redis 7.4                 | Contenedor en infraestructura para uso futuro de sesiones                           |
+| Mensajería   | RabbitMQ 4.1              | Exchange `commerce.events`, cola `erp.sales.v1`, reintentos y DLQ                   |
+| Diagnóstico  | Node.js nativo            | `pnpm demo:doctor`, enmascaramiento de secretos y reset demo explícito              |
+| Calidad / CI | GitHub Actions / Prettier | Formato, tipos, build, migraciones, pruebas de DB, diagnósticos y E2E deterministas |
 
 ## Estructura del repositorio
 
@@ -294,19 +292,30 @@ docker compose --env-file .env.example --profile app config --quiet
 
 La [CI](.github/workflows/ci.yml) ejecuta estas comprobaciones con el lockfile
 congelado. Validar Compose comprueba su configuración; no prueba el tráfico
-completo entre contenedores. Las pruebas de dominio e integración se añadirán
-con las primeras funcionalidades.
+completo entre contenedores. Las pruebas de persistencia de DEMO-02 usan PostgreSQL real; pruebas comerciales y de ERP se añadirán en sus issues.
 
-## Próximas etapas
+## Hitos de la Demo (M1 a M4 completados)
 
-- [ ] Persistencia, migraciones y catálogo conectado de extremo a extremo.
-- [ ] Autenticación, carrito, pedidos y política de reservas de inventario.
-- [ ] Checkout real y webhooks firmados con idempotencia.
-- [ ] Outbox, topología RabbitMQ, reintentos y cola de errores.
-- [ ] Adaptador ERP e importación de inventario con checkpoints.
-- [ ] TLS, Coraza/CRS, observabilidad y recuperación de backups.
-- [ ] Diseño comercial y validación de accesibilidad/rendimiento.
+- [x] **M1:** Persistencia PostgreSQL, migraciones y seed reproducible ([docs/persistence.md](docs/persistence.md)).
+- [x] **M1:** Catálogo conectado de extremo a extremo, frontend responsive y accesible ([docs/catalog-api.md](docs/catalog-api.md), [docs/frontend-validation.md](docs/frontend-validation.md)).
+- [x] **M2:** Carrito, órdenes con checkout transaccional y reserva de inventario ([docs/orders.md](docs/orders.md)).
+- [x] **M2:** Integración de pagos PayPhone (API Sale sandbox y modo simulado) con validación HMAC SHA-256 e idempotencia ([docs/payments.md](docs/payments.md)).
+- [x] **M3:** Publicador Outbox transaccional y mensajería RabbitMQ con colas y DLQ ([docs/messaging.md](docs/messaging.md)).
+- [x] **M3:** Worker ERP, adaptador anticorrupción y sincronización de inventario con conciliación y checkpoints ([docs/inventory-sync.md](docs/inventory-sync.md)).
+- [x] **M4:** Entorno de demo reproducible con Docker Compose, readiness real, diagnóstico `demo:doctor` y reset seguro ([docs/demo-environment.md](docs/demo-environment.md)).
+- [x] **M4:** Pruebas E2E deterministas en CI y smoke test de integración ([docs/qa/integration-validation.md](docs/qa/integration-validation.md)).
+- [x] **M4:** Guion de demostración, escenarios de resiliencia y checklist previo ([docs/presentation-guide.md](docs/presentation-guide.md)).
 
-Los criterios de aceptación y las decisiones pendientes se detallan en el
-[roadmap](docs/roadmap.md). El primer incremento recomendado es
-**PostgreSQL → catálogo en NestJS → listado en Next.js**.
+### Backlog opcional post-demo
+
+- [ ] **DEMO-17:** Cuentas de clientes e historial de pedidos autenticado ([docs/issues-demo.md](docs/issues-demo.md#demo-17--añadir-cuentas-de-clientes-e-historial-privado-opcional)).
+- [ ] **DEMO-18:** Activación y validación de reglas de perímetro con Coraza WAF / OWASP CRS en APISIX ([docs/issues-demo.md](docs/issues-demo.md#demo-18--validar-coraza-y-reglas-de-perímetro-opcional)).
+
+## Servicios y Documentación Interactiva
+
+- **Storefront Web:** http://localhost:8080 (a través del Gateway APISIX).
+- **Swagger API de Comercio:** http://localhost:8080/api/docs (documentación interactiva OpenAPI de endpoints).
+- **Simulador ERP:** http://localhost:3003/docs (API de inventario, ventas y simulación de fallos; ver [docs/erp-simulator.md](docs/erp-simulator.md)).
+- **RabbitMQ Management:** http://localhost:15672 (usuario: `commerce`, password: `local-only-demo`).
+- **Diagnóstico del entorno:** `pnpm demo:doctor` (auditoría de puertos loopback, servicios y variables).
+- **Guion paso a paso de presentación:** [docs/presentation-guide.md](docs/presentation-guide.md).

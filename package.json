@@ -6,6 +6,16 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "demo:up": "docker compose --profile app up --build -d",
+    "demo:down": "docker compose --profile app down",
+    "demo:doctor": "node scripts/demo-diagnostics.cjs",
+    "demo:status": "node scripts/demo-diagnostics.cjs",
+    "demo:smoke": "node apps/api/scripts/payments-gateway-smoke.cjs",
+    "demo:reset": "node scripts/demo-reset.cjs",
+    "demo:seed": "pnpm db:seed && pnpm erp:seed",
+    "erp:seed": "pnpm --filter @groupmg/erp-simulator seed",
+    "erp:reset": "pnpm --filter @groupmg/erp-simulator reset --confirm-erp-demo-reset",
+    "test:erp": "pnpm --filter @groupmg/erp-simulator test",
     "dev:web": "pnpm --filter @groupmg/web dev",
     "dev:api": "pnpm --filter @groupmg/api dev",
     "dev:worker": "pnpm --filter @groupmg/worker-erp dev",
@@ -14,7 +24,18 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "infra:up": "docker compose up -d postgres redis rabbitmq",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "db:generate": "pnpm --filter @groupmg/api run db:generate",
+    "db:migrate": "pnpm --filter @groupmg/api run db:migrate",
+    "db:seed": "pnpm --filter @groupmg/api run db:seed",
+    "db:status": "pnpm --filter @groupmg/api run db:status",
+    "test:db": "pnpm --filter @groupmg/api run test:db",
+    "test:api": "pnpm --filter @groupmg/api run test:api",
+    "test": "pnpm --filter @groupmg/api run test",
+    "test:diagnostics": "node --test test/demo-diagnostics.test.cjs",
+    "test:e2e:deterministic": "node --test test/full-journey-deterministic.test.cjs",
+    "test:worker": "pnpm --filter @groupmg/worker-erp run test",
+    "test:messaging": "pnpm --filter @groupmg/api run test:messaging && pnpm --filter @groupmg/worker-erp run test:messaging"
   },
   "devDependencies": {
     "prettier": "3.9.9",

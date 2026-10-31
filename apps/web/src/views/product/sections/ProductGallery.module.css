@@ -1,0 +1,82 @@
+.gallery {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 16px;
+}
+.thumbnails {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.thumbnails button {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: var(--color-dark);
+}
+.thumbnails button[aria-pressed="true"] {
+  border-color: var(--color-primary);
+}
+.thumbnails img {
+  width: 100%;
+  height: 92px;
+  object-fit: cover;
+}
+.stage {
+  position: relative;
+  height: clamp(480px, 42vw, 670px);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--color-dark);
+}
+.image {
+  position: absolute;
+  inset: 0;
+}
+.image img {
+  object-fit: cover;
+}
+.badge {
+  position: absolute;
+  top: 22px;
+  left: 22px;
+  z-index: 1;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 10px 14px;
+  border-radius: 6px;
+}
+.caption {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  right: 18px;
+  width: fit-content;
+  font-size: 11px;
+  padding: 7px 10px;
+  border-radius: 5px;
+  background: var(--color-dark);
+  color: var(--color-on-dark);
+}
+@media (max-width: 600px) {
+  .gallery {
+    grid-template-columns: 1fr;
+  }
+  .thumbnails {
+    order: 2;
+    flex-direction: row;
+  }
+  .thumbnails button {
+    width: 68px;
+  }
+  .thumbnails img {
+    height: 72px;
+  }
+  .stage {
+    height: 440px;
+  }
+}

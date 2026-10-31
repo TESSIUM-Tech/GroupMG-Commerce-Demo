@@ -4,15 +4,41 @@
   "private": true,
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/main.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "prisma generate && tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:status": "prisma migrate status",
+    "test:db": "node --test test/persistence.test.cjs",
+    "test:api": "node --test test/api-base.test.cjs",
+    "test:catalog:unit": "node --test test/catalog-unit.test.cjs test/catalog-http.test.cjs",
+    "test:catalog": "node --test test/catalog.test.cjs",
+    "test:swagger": "node --test test/swagger.test.cjs",
+    "test:orders:unit": "node --test test/orders-unit.test.cjs",
+    "test:orders": "node --test test/orders.test.cjs",
+    "test:payments:unit": "node --test test/payments-unit.test.cjs test/payments-provider-unit.test.cjs test/payments-sale-unit.test.cjs",
+    "test:payments": "node --test --test-concurrency=1 test/payments.test.cjs test/payments-callback.test.cjs test/payments-reconcile.test.cjs",
+    "test:messaging": "node --test --test-concurrency=1 test/messaging-topology.test.cjs test/outbox-publisher.test.cjs",
+    "test": "node --test --test-concurrency=1 test/persistence.test.cjs test/api-base.test.cjs test/catalog-unit.test.cjs test/catalog-http.test.cjs test/catalog.test.cjs test/orders-unit.test.cjs test/orders.test.cjs test/payments-unit.test.cjs test/payments-provider-unit.test.cjs test/payments-sale-unit.test.cjs test/payments.test.cjs test/payments-callback.test.cjs test/payments-reconcile.test.cjs test/messaging-unit.test.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",
     "@nestjs/core": "^11.1.0",
     "@nestjs/platform-express": "^11.1.0",
+    "@nestjs/swagger": "^11.4.7",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "amqplib": "^2.2.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.4",
+    "dotenv": "17.2.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "prisma": "7.10.0"
   }
 }

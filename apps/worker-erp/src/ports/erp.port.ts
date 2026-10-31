@@ -1,3 +1,5 @@
+export const ERP_PORT = Symbol("ErpPort");
+
 export interface InventoryItem {
   sku: string;
   available: number;

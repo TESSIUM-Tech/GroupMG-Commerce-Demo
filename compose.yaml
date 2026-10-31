@@ -8,7 +8,9 @@ services:
       - ./infra/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./infra/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
     networks: [edge]
-    depends_on: [web, api]
+    depends_on:
+      web: { condition: service_healthy }
+      api: { condition: service_healthy }
   web:
     build:
       context: .
@@ -16,6 +18,20 @@ services:
       args: { WORKSPACE: "@groupmg/web" }
     profiles: [app]
     networks: [edge]
+    environment:
+      INTERNAL_API_URL: "http://api:3001"
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   api:
     build:
       context: .
@@ -23,7 +39,33 @@ services:
       args: { WORKSPACE: "@groupmg/api" }
     profiles: [app]
     networks: [edge, data]
-    environment: { PORT: "3001" }
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3001"
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
+      # Pagos (DEMO-09): opcionales; sin ellos la API arranca con pagos desactivados.
+      PAYMENTS_MODE: ${PAYMENTS_MODE:-disabled}
+      PAYMENTS_SIMULATED_OUTCOME: ${PAYMENTS_SIMULATED_OUTCOME:-approved}
+      PAYMENTS_CALLBACK_SECRET: ${PAYMENTS_CALLBACK_SECRET:-}
+      PAYPHONE_TOKEN: ${PAYPHONE_TOKEN:-}
+      PAYPHONE_STORE_ID: ${PAYPHONE_STORE_ID:-}
+      PAYPHONE_RESPONSE_URL: ${PAYPHONE_RESPONSE_URL:-}
+      # Outbox -> RabbitMQ (DEMO-12): opcional; sin ella el outbox espera en PostgreSQL.
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3001/api/v1/health/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   worker-erp:
     build:
       context: .
@@ -31,6 +73,52 @@ services:
       args: { WORKSPACE: "@groupmg/worker-erp" }
     profiles: [app]
     networks: [data, integration]
+    environment:
+      # Adaptador ERP (DEMO-11). ERP_ADAPTER=none desactiva la exportación.
+      ERP_ADAPTER: ${ERP_ADAPTER:-simulated}
+      ERP_BASE_URL: http://erp-simulator:3003
+      ERP_TIMEOUT_MS: ${ERP_TIMEOUT_MS:-3000}
+      ERP_PAGE_SIZE: ${ERP_PAGE_SIZE:-20}
+      # Exportación de ventas (DEMO-12): sin RabbitMQ el worker no consume y
+      # las ventas esperan en la cola erp.sales.v1.
+      DATABASE_URL: ${DATABASE_URL_DOCKER:?Configurar DATABASE_URL_DOCKER}
+      RABBITMQ_URL: ${RABBITMQ_URL_DOCKER:-}
+      # Sincronización de inventario (DEMO-13)
+      INVENTORY_SYNC_ENABLED: ${INVENTORY_SYNC_ENABLED:-true}
+      INVENTORY_SYNC_INTERVAL_MS: ${INVENTORY_SYNC_INTERVAL_MS:-30000}
+      INVENTORY_SYNC_TIMEOUT_MS: ${INVENTORY_SYNC_TIMEOUT_MS:-10000}
+    depends_on:
+      erp-simulator: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+  erp-simulator:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+      args: { WORKSPACE: "@groupmg/erp-simulator" }
+    profiles: [app, erp-demo]
+    ports: ["127.0.0.1:3003:3003"]
+    networks: [integration, data]
+    environment:
+      ERP_DATABASE_URL: postgresql://erp_demo:${ERP_POSTGRES_PASSWORD:-erp-local-change-me}@postgres:5432/erp_demo
+      ERP_ENV: ${ERP_ENV:-demo}
+      ERP_PORT: "3003"
+      ERP_DEMO_SCENARIO: ${ERP_DEMO_SCENARIO:-normal}
+      ERP_DEMO_LATENCY_MS: ${ERP_DEMO_LATENCY_MS:-0}
+      ERP_DEMO_TIMEOUT_MS: ${ERP_DEMO_TIMEOUT_MS:-10000}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   postgres:
     image: postgres:17-bookworm
     environment:
@@ -38,8 +126,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Configurar POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:?Configurar POSTGRES_DB}
     ports: ["127.0.0.1:5432:5432"]
-    volumes: ["postgres-data:/var/lib/postgresql/data"]
-    networks: [data]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/docker/init-erp-db.sql:/docker-entrypoint-initdb.d/init-erp-db.sql:ro
+    networks: [data, local-db]
     healthcheck:
       test:
         [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
@@ -48,6 +138,7 @@ services:
       retries: 5
   redis:
     image: redis:7.4-bookworm
+    profiles: [optional]
     command: [redis-server, --appendonly, "yes"]
     ports: ["127.0.0.1:6379:6379"]
     volumes: ["redis-data:/data"]
@@ -64,7 +155,8 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Configurar clave RabbitMQ}
     ports: ["127.0.0.1:5672:5672", "127.0.0.1:15672:15672"]
     volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
-    networks: [data]
+    # local-broker publica 5672/15672 en 127.0.0.1 (data es interna), como local-db.
+    networks: [data, local-broker]
     healthcheck:
       test: [CMD, rabbitmq-diagnostics, -q, ping]
       interval: 10s
@@ -75,6 +167,8 @@ networks:
   data:
     internal: true
   integration:
+  local-db:
+  local-broker:
 volumes:
   postgres-data:
   redis-data:

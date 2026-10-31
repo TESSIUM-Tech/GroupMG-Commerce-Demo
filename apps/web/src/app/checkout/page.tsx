@@ -1,18 +1,14 @@
-export const metadata = { title: "Checkout" };
-export default function Checkout() {
-  return (
-    <>
-      <p className="eyebrow">CHECKOUT</p>
-      <h1>
-        Tu próxima compra
-        <br />
-        empieza aquí.
-      </h1>
-      <section className="empty">
-        <h2>Checkout en preparación</h2>
-        <p>Los pedidos y los pagos todavía no están habilitados.</p>
-        <button disabled>Continuar al pago</button>
-      </section>
-    </>
-  );
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { CheckoutView } from "../../views/checkout/CheckoutView";
+
+export const metadata: Metadata = {
+  title: "Checkout",
+  robots: { index: false, follow: false },
+};
+
+export default async function CheckoutPage() {
+  // Prevent shared/CDN cache for checkout pages (criterion 6).
+  (await headers()).get("x-no-store"); // trigger dynamic rendering
+  return <CheckoutView />;
 }

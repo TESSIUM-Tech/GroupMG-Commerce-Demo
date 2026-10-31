@@ -1,0 +1,115 @@
+.card {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 24px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+}
+.image {
+  border-radius: 12px;
+  overflow: hidden;
+  align-self: start;
+}
+.image img {
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
+}
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: var(--color-accent);
+  color: var(--color-primary);
+  padding: 8px 10px;
+  border-radius: 5px;
+}
+.info h2 {
+  font-size: 21px;
+  font-weight: 400;
+  margin: 16px 0 10px;
+}
+.info p {
+  font-size: 13px;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+.info > small {
+  display: block;
+  color: var(--color-primary);
+  font-size: 12px;
+  margin-top: 8px;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 24px;
+}
+.quantity {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.quantity button {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.quantity button:disabled {
+  color: var(--color-muted);
+  cursor: default;
+}
+.quantity span {
+  min-width: 30px;
+  text-align: center;
+  font-size: 14px;
+}
+.remove {
+  color: var(--color-muted);
+  background: transparent;
+  text-decoration: underline;
+  font-size: 13px;
+  padding: 10px 0;
+}
+.price {
+  font-size: 19px;
+  font-weight: 600;
+  text-align: right;
+}
+.price small {
+  display: block;
+  font-size: 11px;
+  color: var(--color-muted);
+  font-weight: 400;
+  margin-top: 7px;
+}
+@media (max-width: 700px) {
+  .card {
+    grid-template-columns: 100px 1fr;
+    gap: 18px;
+    padding: 18px;
+  }
+  .image img {
+    width: 100px;
+    height: 125px;
+  }
+  .price {
+    grid-column: 2;
+    text-align: left;
+  }
+  .info h2 {
+    font-size: 18px;
+  }
+  .actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}

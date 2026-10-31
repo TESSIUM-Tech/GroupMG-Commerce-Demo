@@ -1,0 +1,25 @@
+.frame {
+  /* Keep the zoom inside its own section without a horizontal scrollbar. */
+  overflow: clip;
+}
+.content {
+  transform-origin: center center;
+}
+.reveal {
+  /* Scaling from the top avoids shifting a tall mobile grid around its center. */
+  transform-origin: center top;
+}
+.content:focus-within {
+  /* Keyboard navigation keeps the focused content readable. */
+  transform: none !important;
+  filter: none !important;
+  opacity: 1 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .content,
+  .reveal {
+    transform: none !important;
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}
